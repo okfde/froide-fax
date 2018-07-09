@@ -19,7 +19,7 @@ def fax_media_url(request, signed):
     if attachment_id is None:
         return HttpResponse(status_code=403)
 
-    attachment = get_object_or_404(FoiAttachment)
+    attachment = get_object_or_404(FoiAttachment, pk=attachment_id)
     return send_attachment_file(attachment)
 
 
@@ -28,7 +28,7 @@ def fax_status_callback(request, signed):
     if message_id is None:
         return HttpResponse(status_code=403)
 
-    message = get_object_or_404(FoiMessage)
+    message = get_object_or_404(FoiMessage, pk=message_id)
     fax_sid = request.POST.get('FaxSid')
     if message.email_message_id != fax_sid:
         return HttpResponse(status_code=403)
