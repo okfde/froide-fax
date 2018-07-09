@@ -1,5 +1,6 @@
 import base64
 from io import BytesIO
+import os
 
 from django import forms
 from django.utils import timezone
@@ -44,6 +45,9 @@ class SignatureForm(forms.Form):
             sig = Signature.objects.get(user=self.user)
         except Signature.DoesNotExist:
             sig = Signature(user=self.user)
+
+        if sig.signature and os.path.exists(sig.signature.path):
+            os.remove(sig.signature.path)
 
         signature = self.cleaned_data['signature']
         if signature is None:
