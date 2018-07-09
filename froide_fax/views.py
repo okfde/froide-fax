@@ -17,7 +17,7 @@ from .utils import unsign_attachment_id, unsign_message_id
 def fax_media_url(request, signed):
     attachment_id = unsign_attachment_id(signed)
     if attachment_id is None:
-        return HttpResponse(status_code=403)
+        return HttpResponse(status=403)
 
     attachment = get_object_or_404(FoiAttachment, pk=attachment_id)
     return send_attachment_file(attachment)
@@ -26,12 +26,12 @@ def fax_media_url(request, signed):
 def fax_status_callback(request, signed):
     message_id = unsign_message_id(signed)
     if message_id is None:
-        return HttpResponse(status_code=403)
+        return HttpResponse(status=403)
 
     message = get_object_or_404(FoiMessage, pk=message_id)
     fax_sid = request.POST.get('FaxSid')
     if message.email_message_id != fax_sid:
-        return HttpResponse(status_code=403)
+        return HttpResponse(status=403)
 
     fax_status = request.POST.get('FaxStatus')
 
@@ -53,7 +53,7 @@ def fax_status_callback(request, signed):
     ])
     ds.save()
 
-    return HttpResponse(status_code=204)
+    return HttpResponse(status=204)
 
 
 class UpdateSignatureView(LoginRequiredMixin, FormView):
