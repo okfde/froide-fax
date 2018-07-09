@@ -28,7 +28,7 @@ class FaxMessagePDFGenerator(LetterPDFGenerator):
             )
 
             doc.append(NoEscape('''\\closing{Mit freundlichen Grüßen\\\\
-            \\includegraphics[height=5em]{signature}\\\\
-            }'''))
+\\includegraphics[height=5em]{signature}
+}'''))
         else:
             super(FaxMessagePDFGenerator, self).append_closing(doc)
