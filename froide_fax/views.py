@@ -31,9 +31,6 @@ def fax_status_callback(request, signed):
         return HttpResponse(status=403)
 
     message = get_object_or_404(FoiMessage, pk=message_id)
-    fax_sid = request.POST.get('FaxSid')
-    if message.email_message_id != fax_sid:
-        return HttpResponse(status=403)
 
     fax_status = request.POST.get('FaxStatus')
 
