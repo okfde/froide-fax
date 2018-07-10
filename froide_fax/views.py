@@ -1,8 +1,10 @@
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 from django.views.generic import FormView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 
 from froide.foirequest.models import (
     FoiMessage, FoiAttachment, DeliveryStatus
@@ -67,7 +69,15 @@ class UpdateSignatureView(LoginRequiredMixin, FormView):
 
     def form_valid(self, form):
         """If the form is valid, redirect to the supplied URL."""
-        form.save()
+        sig = form.save()
+        if sig:
+            messages.add_message(self.request, messages.SUCCESS, _(
+                'Signature has been saved.'
+            ))
+        else:
+            messages.add_message(self.request, messages.SUCCESS, _(
+                'Signature has been removed.'
+            ))
         return super(UpdateSignatureView, self).form_valid(form)
 
     def get_success_url(self):
