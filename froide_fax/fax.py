@@ -25,11 +25,12 @@ def create_fax_message_with_attachment(message):
         sender_user=message.sender_user,
         sender_name=message.sender_name,
         sender_email=message.sender_email,
-        recipient_email='',
+        recipient_email=message.recipient_public_body.fax,
         recipient_public_body=message.recipient_public_body,
         recipient=message.recipient,
         timestamp=timezone.now(),
-        plaintext=''
+        plaintext='',
+        original=message
     )
 
     att = FoiAttachment(
