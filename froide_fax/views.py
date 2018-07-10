@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.views.generic import FormView
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 
@@ -25,6 +26,7 @@ def fax_media_url(request, signed):
     return send_attachment_file(attachment)
 
 
+@csrf_exempt
 def fax_status_callback(request, signed):
     message_id = unsign_message_id(signed)
     if message_id is None:
