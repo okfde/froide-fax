@@ -89,6 +89,7 @@ class FaxMessageHandler(MessageHandler):
 
         fax = client.fax.faxes.create(
             to=fax_number,
+            from_=settings.TWILIO_FROM_NUMBER,
             media_url=media_url,
             quality='standard',
             status_callback=status_url,
