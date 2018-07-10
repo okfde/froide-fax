@@ -55,12 +55,12 @@ def create_fax_message_with_attachment(message):
 def send_message_as_fax(message):
     fax_message, att = create_fax_message_with_attachment(message)
 
-    fax_message.send()
+    fax_message.send(notify=False)
     return fax_message
 
 
 class FaxMessageHandler(MessageHandler):
-    def run_send(self):
+    def run_send(self, **kwargs):
         fax_message = self.message
 
         fax_number = ensure_fax_number(fax_message.recipient_public_body)
