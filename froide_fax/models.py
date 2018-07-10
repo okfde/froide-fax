@@ -28,5 +28,9 @@ class Signature(models.Model):
         default=timezone.now
     )
 
+    class Meta:
+        verbose_name = _('Signature')
+        verbose_name_plural = _('Signatures')
+
     def __str__(self):
-        return _('Signature %s') % self.pk
+        return str(self.user)

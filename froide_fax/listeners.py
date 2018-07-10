@@ -18,6 +18,7 @@ def connect_message_send(sender, message=None, **kwargs):
     if fax_number is None:
         return
 
+    # TODO: remove feature flag
     if not message.sender_user.pk == 1:
         return
 
