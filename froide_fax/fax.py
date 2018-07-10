@@ -87,6 +87,12 @@ class FaxMessageHandler(MessageHandler):
         auth_token = settings.TWILIO_AUTH_TOKEN
         client = Client(account_sid, auth_token)
 
+        DeliveryStatus.objects.create(
+            message=fax_message,
+            status=DeliveryStatus.STATUS_UNKNOWN,
+            last_update=timezone.now(),
+        )
+
         fax = client.fax.faxes.create(
             to=fax_number,
             from_=settings.TWILIO_FROM_NUMBER,
@@ -97,11 +103,5 @@ class FaxMessageHandler(MessageHandler):
         )
 
         # store fax.sid in message 'email_message_id' (misnomer)
-        fax_message.email_message_id = fax.sid
-        fax_message.save()
-
-        DeliveryStatus.objects.create(
-            message=fax_message,
-            status=DeliveryStatus.STATUS_UNKNOWN,
-            last_update=timezone.now(),
-        )
+        FoiMessage.objects.filter(
+            pk=fax_message.pk).update(email_message_id=fax.sid)
