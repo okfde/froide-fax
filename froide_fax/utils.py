@@ -38,7 +38,7 @@ def get_signature(user):
     if user is None:
         return None
     if hasattr(user, '_signature'):
-        return user._signature.signature.path
+        return user._signature
     try:
         signature = Signature.objects.get(user=user)
     except Signature.DoesNotExist:
