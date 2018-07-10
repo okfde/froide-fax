@@ -1,8 +1,13 @@
+from datetime import timedelta
+
 from django.core.signing import Signer, BadSignature
 from django.urls import reverse
 from django.conf import settings
+from django.utils import timezone
 
 import phonenumbers
+
+from froide.foirequest.models import FoiMessage
 
 from .models import Signature
 
@@ -32,9 +37,19 @@ def ensure_fax_number(publicbody):
 def get_signature(user):
     if user is None:
         return None
+    if hasattr(user, '_signature'):
+        return user._signature.signature.path
     try:
         signature = Signature.objects.get(user=user)
     except Signature.DoesNotExist:
+        return None
+    user._signature = signature
+    return signature
+
+
+def get_signature_path(user):
+    signature = get_signature(user)
+    if signature is None:
         return None
     if not signature.signature:
         return None
@@ -87,3 +102,18 @@ def unsign_obj_id(signature, salt=None):
     if parts[1] != settings.TWILIO_ACCOUNT_SID:
         return None
     return int(parts[0])
+
+
+def send_messages_of_request(foirequest):
+    from .tasks import send_message_as_fax_task
+
+    if not foirequest.law.requires_signature:
+        return
+
+    not_too_long_ago = timezone.now() - timedelta(hours=36)
+    messages = FoiMessage.objects.filter(
+        request=foirequest, is_response=False,
+        kind='email', timestamp__gte=not_too_long_ago
+    )
+    for message in messages:
+        send_message_as_fax_task.delay(message.pk)

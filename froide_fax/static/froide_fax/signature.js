@@ -10,6 +10,10 @@
     var clearButton = wrapper.querySelector("[data-action=clear]");
     var undoButton = wrapper.querySelector("[data-action=undo]");
     var formField = wrapper.querySelector("input[type=hidden]");
+    var required = formField.required
+    var form = findForm(formField)
+    var submitButton = form.querySelector('button[type=submit]')
+
     var storedValue = formField.value
     var changed = false
   
@@ -19,14 +23,21 @@
       backgroundColor: 'rgb(255, 255, 255)',
       onEnd: function() {
         changed = true
+        submitButton.disabled = false
         formField.value = signaturePad.toDataURL()
       }
     });
 
-    clearButton.addEventListener("click", function (event) {
-      console.log('clear')
+    function clear () {
       signaturePad.clear();
       formField.value = ''
+      if (required) {
+        submitButton.disabled = true
+      }
+    }
+
+    clearButton.addEventListener("click", function (event) {
+      clear()
     });
     
     undoButton.addEventListener("click", function (event) {
@@ -59,10 +70,12 @@
       // have to clear it manually.
       signaturePad.clear();
       if (!initial) {
-        formField.value = ''
+        clear()
       }
       if (storedValue.length > 0 && !changed) {
         signaturePad.fromDataURL(storedValue)
+      } else if (required) {
+        submitButton.disabled = true
       }
     }
 
@@ -72,6 +85,13 @@
     if (storedValue.length > 0) {
       signaturePad.fromDataURL(storedValue)
     }
+  }
+
+  function findForm (el) {
+    while (el !== null && el.tagName != 'FORM') {
+      el = el.parentNode
+    }
+    return el
   }
 
   function ready(fn) {

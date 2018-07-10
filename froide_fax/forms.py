@@ -5,9 +5,11 @@ import os
 from django import forms
 from django.utils import timezone
 
+from froide.foirequest.models import FoiRequest
+
 from .models import Signature
 from .widgets import SignatureWidget
-from .utils import get_signature
+from .utils import get_signature_path, send_messages_of_request
 
 DATA_URL_PNG = 'data:image/png;base64,'
 
@@ -17,15 +19,25 @@ class SignatureForm(forms.Form):
         required=False,
         widget=SignatureWidget
     )
+    foirequest = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        widget=forms.HiddenInput
+    )
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user')
+        signature_required = kwargs.pop('signature_required', False)
         super(SignatureForm, self).__init__(*args, **kwargs)
-        signature = get_signature(self.user)
-        if signature:
-            with open(signature, 'rb') as f:
+        foirequests = FoiRequest.objects.filter(user=self.user)
+        self.fields['foirequest'].queryset = foirequests
+        signature_path = get_signature_path(self.user)
+        if signature_path:
+            with open(signature_path, 'rb') as f:
                 b64_string = base64.b64encode(f.read()).decode('utf-8')
             self.fields['signature'].initial = DATA_URL_PNG + b64_string
+        if signature_required:
+            self.fields['signature'].widget.attrs.update({'required': True})
 
     def clean_signature(self):
         data_uri = self.cleaned_data['signature']
@@ -50,9 +62,16 @@ class SignatureForm(forms.Form):
             os.remove(sig.signature.path)
 
         signature = self.cleaned_data['signature']
-        if signature is None:
+        if signature is None and sig.pk:
             sig.delete()
-        else:
+            sig = None
+        elif signature is not None:
             sig.signature.save('signature.png', signature)
             sig.timestamp = timezone.now()
             sig.save()
+        else:
+            sig = None
+        if sig is not None and self.cleaned_data['foirequest']:
+            foirequest = self.cleaned_data['foirequest']
+            send_messages_of_request(foirequest)
+        return sig

@@ -11,14 +11,14 @@ except ImportError:
 
 from froide.foirequest.pdf_generator import LetterPDFGenerator
 
-from .utils import get_signature
+from .utils import get_signature_path
 
 
 class FaxMessagePDFGenerator(LetterPDFGenerator):
     def append_closing(self, doc):
         message = self.obj
         user = message.sender_user
-        signature_filename = get_signature(user)
+        signature_filename = get_signature_path(user)
         if signature_filename is not None:
             shutil.copyfile(
                 signature_filename,

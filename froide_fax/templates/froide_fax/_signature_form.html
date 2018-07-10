@@ -8,12 +8,14 @@
   <div class="card-body">
     <div class="row">
       <div class="col-md-8">
+        {% if not hide_explanation %}
         <p>
           {% blocktrans %}
             Sometimes public authorities require a written letter with a signature from you.
             We can send a letter as a fax with your signature, if you provide it below.
           {% endblocktrans %}
         </p>
+        {% endif %}
         <p>
           {% blocktrans %}
             We will only place your signature under requests and messages that you send.
@@ -21,28 +23,36 @@
         </p>
         <p>
           {% blocktrans %}
-            Please write your signature in the box below by using your mouse on Desktop or finger on touch screens.
+            Please write your signature in the box below by using your mouse on Desktop or your finger on touch screens.
           {% endblocktrans %}
         </p>
       </div>
     </div>
     <form enctype="multipart/form-data" method="post" action="{% url 'froide_fax-update_signature' %}">
       {% csrf_token %}
+      {% if next %}
+        <input type="hidden" name="next" value="{{ next }}"/>
+      {% endif %}
+      {% if foirequest %}
+        <input type="hidden" name="foirequest" value="{{ foirequest.pk }}"/>
+      {% endif %}
       {{ form.signature }}
       <hr/>
       <div class="row">
         <div class="col-12 col-md-6 mt-3">
           <button type="submit" class="btn btn-primary">
             <span class="fa fa-pencil-square-o" aria-hidden="true"></span>
-            {% trans "Save signature" %}
+            {% if save_button %}{{ save_button }}{% else %}{% trans "Save signature" %}{% endif %}
           </button>
         </div>
-        <div class="col-12 col-md-6 mt-3 text-right">
-          <button type="submit" name="signature" value="" class="btn btn-danger">
-            <span class="fa fa-ban" aria-hidden="true"></span>
-            {% trans "Delete" %}
-          </button>
-        </div>
+        {% if form.signature.initial %}
+          <div class="col-12 col-md-6 mt-3 text-right">
+            <button type="submit" name="signature" value="" class="btn btn-danger">
+              <span class="fa fa-ban" aria-hidden="true"></span>
+              {% trans "Delete signature" %}
+            </button>
+          </div>
+        {% endif %}
       </div>
     </form>
   </div>

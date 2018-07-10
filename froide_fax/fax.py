@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.utils import timezone
 from django.core.files import File
+from django.db import transaction
 
 from twilio.rest import Client
 
@@ -16,44 +17,53 @@ from .utils import (
 
 
 def create_fax_message_with_attachment(message):
-    fax_message = FoiMessage.objects.create(
-        kind='fax',
-        request=message.request,
-        subject=message.subject,
-        subject_redacted=message.subject_redacted,
-        is_response=False,
-        sender_user=message.sender_user,
-        sender_name=message.sender_name,
-        sender_email=message.sender_email,
-        recipient_email=message.recipient_public_body.fax,
-        recipient_public_body=message.recipient_public_body,
-        recipient=message.recipient,
-        timestamp=timezone.now(),
-        plaintext='',
-        original=message
-    )
-
-    att = FoiAttachment(
-        belongs_to=fax_message,
-        name='fax.pdf',
-        is_redacted=False,
-        filetype='application/pdf',
-        approved=False,
-        can_approve=True
-    )
-
     pdf_generator = FaxMessagePDFGenerator(message)
 
     with pdf_generator.get_pdf_filename() as filename:
-        with open(filename, 'rb') as f:
-            pdf_file = File(f)
-            att.file = pdf_file
-            att.size = pdf_file.size
-            att.save()
+        with transaction.atomic():
+            fax_message = FoiMessage.objects.create(
+                kind='fax',
+                request=message.request,
+                subject=message.subject,
+                subject_redacted=message.subject_redacted,
+                is_response=False,
+                sender_user=message.sender_user,
+                sender_name=message.sender_name,
+                sender_email=message.sender_email,
+                recipient_email=message.recipient_public_body.fax,
+                recipient_public_body=message.recipient_public_body,
+                recipient=message.recipient,
+                timestamp=timezone.now(),
+                plaintext='',
+                original=message
+            )
+
+            att = FoiAttachment(
+                belongs_to=fax_message,
+                name='fax.pdf',
+                is_redacted=False,
+                filetype='application/pdf',
+                approved=False,
+                can_approve=False
+            )
+
+            with open(filename, 'rb') as f:
+                pdf_file = File(f)
+                att.file = pdf_file
+                att.size = pdf_file.size
+                att.save()
     return fax_message, att
 
 
 def send_message_as_fax(message):
+    if message.message_copies.filter(kind='fax').exists():
+        # Already exists
+        return
+
+    fax_number = ensure_fax_number(message.recipient_public_body)
+    if fax_number is None:
+        return None
+
     fax_message, att = create_fax_message_with_attachment(message)
 
     fax_message.send(notify=False)

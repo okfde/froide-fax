@@ -1,7 +1,6 @@
 .signature-pad--body {
   position: relative;
   width: 100%;
-  max-width: 500px;
   padding-bottom: 25%;
   border: 1px solid #e4e4e4;
 }
