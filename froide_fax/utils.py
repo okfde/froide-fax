@@ -7,8 +7,6 @@ from django.utils import timezone
 
 import phonenumbers
 
-from froide.foirequest.models import FoiMessage
-
 from .models import Signature
 
 
@@ -104,16 +102,29 @@ def unsign_obj_id(signature, salt=None):
     return int(parts[0])
 
 
+def get_faxable_messages_from_foirequest(foirequest):
+    not_too_long_ago = timezone.now() - timedelta(hours=36)
+
+    faxes = [m for m in foirequest.messages
+             if not m.is_response and m.kind == 'fax']
+    faxes_originals = set([m.original_id for m in faxes])
+
+    return [
+        m for m in foirequest.messages if (
+            not m.is_response and
+            m.kind == 'email' and
+            m.timestamp >= not_too_long_ago and
+            m.id not in faxes_originals
+        )
+    ]
+
+
 def send_messages_of_request(foirequest):
     from .tasks import send_message_as_fax_task
 
     if not foirequest.law.requires_signature:
         return
 
-    not_too_long_ago = timezone.now() - timedelta(hours=36)
-    messages = FoiMessage.objects.filter(
-        request=foirequest, is_response=False,
-        kind='email', timestamp__gte=not_too_long_ago
-    )
+    messages = get_faxable_messages_from_foirequest(foirequest)
     for message in messages:
         send_message_as_fax_task.delay(message.pk)
