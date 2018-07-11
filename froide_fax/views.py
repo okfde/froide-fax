@@ -49,9 +49,12 @@ def fax_status_callback(request, signed):
     elif fax_status in ('failed', 'canceled'):
         ds.status = DeliveryStatus.STATUS_FAILED
 
-    ds.log += '\n' + '\n'.join([
+    ds.log += '\n\n%s' % ds.last_update.isoformat()
+    ds.log += '\n'.join([
         '%s: %s' % (k, v) for k, v in request.POST.items()
+        if k not in ('AccountSid', 'MediaUrl', 'OriginalMediaUrl')
     ])
+    ds.log = ds.log.strip()
     ds.save()
 
     return HttpResponse(status=204)
