@@ -87,10 +87,13 @@ class FaxMessageHandler(MessageHandler):
         auth_token = settings.TWILIO_AUTH_TOKEN
         client = Client(account_sid, auth_token)
 
-        DeliveryStatus.objects.create(
+        ds, created = DeliveryStatus.objects.update_or_create(
             message=fax_message,
-            status=DeliveryStatus.STATUS_UNKNOWN,
-            last_update=timezone.now(),
+            defaults=dict(
+                status=DeliveryStatus.STATUS_SENDING,
+                last_update=timezone.now(),
+                log=''
+            )
         )
 
         fax = client.fax.faxes.create(

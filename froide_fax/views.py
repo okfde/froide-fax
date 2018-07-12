@@ -37,31 +37,37 @@ def fax_status_callback(request, signed):
 
     fax_status = request.POST.get('FaxStatus')
 
-    ds = message.get_delivery_status()
-    ds.last_update = timezone.now()
-
     # See https://www.twilio.com/docs/fax/api/faxes#fax-status-values
     if fax_status in ('queued', 'processing', 'sending'):
-        ds.status = DeliveryStatus.STATUS_SENDING
+        status = DeliveryStatus.STATUS_SENDING
     elif fax_status in ('delivered', 'received'):
-        ds.status = DeliveryStatus.STATUS_RECEIVED
+        status = DeliveryStatus.STATUS_RECEIVED
     elif fax_status in ('no-answer', 'busy'):
-        ds.status = DeliveryStatus.STATUS_DEFERRED
+        status = DeliveryStatus.STATUS_DEFERRED
     elif fax_status in ('failed', 'canceled'):
-        ds.status = DeliveryStatus.STATUS_FAILED
+        status = DeliveryStatus.STATUS_FAILED
 
-    current_log = '%s\n' % ds.last_update.isoformat()
+    current_log = '%s\n' % timezone.now().isoformat()
     current_log += '\n'.join([
         '%s: %s' % (k, v) for k, v in request.POST.items()
         if k not in ('AccountSid', 'MediaUrl', 'OriginalMediaUrl')
     ])
-    if ds.status == DeliveryStatus.STATUS_RECEIVED:
+
+    ds, created = DeliveryStatus.objects.update_or_create(
+        message=message,
+        defaults=dict(
+            status=status,
+            last_update=timezone.now(),
+        )
+    )
+
+    if status == DeliveryStatus.STATUS_RECEIVED:
         ds.log = current_log.strip()
     else:
         ds.log += '\n\n%s' % current_log.strip()
     ds.save()
 
-    if ds.status == DeliveryStatus.STATUS_DEFERRED:
+    if status == DeliveryStatus.STATUS_DEFERRED:
         # Retry fax delivery in 45 minutes
         retry_fax_delivery.apply_async(
             (message.pk,), {}, countdown=45 * 60
