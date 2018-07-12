@@ -15,6 +15,7 @@ from froide.helper.utils import get_redirect_url
 
 from .forms import SignatureForm
 from .utils import unsign_attachment_id, unsign_message_id
+from .tasks import retry_fax_delivery
 
 
 def fax_media_url(request, signed):
@@ -49,13 +50,22 @@ def fax_status_callback(request, signed):
     elif fax_status in ('failed', 'canceled'):
         ds.status = DeliveryStatus.STATUS_FAILED
 
-    ds.log += '\n\n%s' % ds.last_update.isoformat()
-    ds.log += '\n'.join([
+    current_log = '%s\n' % ds.last_update.isoformat()
+    current_log += '\n'.join([
         '%s: %s' % (k, v) for k, v in request.POST.items()
         if k not in ('AccountSid', 'MediaUrl', 'OriginalMediaUrl')
     ])
-    ds.log = ds.log.strip()
+    if ds.status == DeliveryStatus.STATUS_RECEIVED:
+        ds.log = current_log.strip()
+    else:
+        ds.log += '\n\n%s' % current_log.strip()
     ds.save()
+
+    if ds.status == DeliveryStatus.STATUS_DEFERRED:
+        # Retry fax delivery in 45 minutes
+        retry_fax_delivery.apply_async(
+            (message.pk,), {}, countdown=45 * 60
+        )
 
     return HttpResponse(status=204)
 

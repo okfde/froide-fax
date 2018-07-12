@@ -104,4 +104,6 @@ class FaxMessageHandler(MessageHandler):
 
         # store fax.sid in message 'email_message_id' (misnomer)
         FoiMessage.objects.filter(
-            pk=fax_message.pk).update(email_message_id=fax.sid)
+            pk=fax_message.pk).update(
+                email_message_id=fax.sid, sent=True
+        )
