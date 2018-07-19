@@ -10,16 +10,16 @@ def connect_message_send(sender, message=None, **kwargs):
     if message.is_response:
         return
 
+    if len(sender.messages) > 1:
+        # Only send first message automatically
+        return
+
     request = message.request
     if not request.law.requires_signature:
         return
 
     fax_number = ensure_fax_number(message.recipient_public_body)
     if fax_number is None:
-        return
-
-    # TODO: remove feature flag
-    if not message.sender_user.pk == 1:
         return
 
     sig = get_signature(message.sender_user)
