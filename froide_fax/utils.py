@@ -7,6 +7,8 @@ from django.utils import timezone
 
 import phonenumbers
 
+from froide.foirequest.models import FoiMessage
+
 from .models import Signature
 
 
@@ -102,29 +104,73 @@ def unsign_obj_id(signature, salt=None):
     return int(parts[0])
 
 
-def get_faxable_messages_from_foirequest(foirequest):
+def message_can_be_faxed(message, ignore_time=False, ignore_signature=False):
+    if message is None:
+        return False
+    if message.kind != 'email':
+        return False
+    if message.is_response:
+        return False
+
+    request = message.request
+    if not request.law.requires_signature:
+        return False
+
+    fax_number = ensure_fax_number(message.recipient_public_body)
+    if fax_number is None:
+        return False
+
+    sig = get_signature(message.sender_user)
+    if not ignore_signature and not sig:
+        return False
+
     not_too_long_ago = timezone.now() - timedelta(hours=36)
+    if not ignore_time and message.timestamp < not_too_long_ago:
+        return False
 
-    faxes = [m for m in foirequest.messages
-             if not m.is_response and m.kind == 'fax']
-    faxes_originals = set([m.original_id for m in faxes])
+    already_faxed = set([m.original_id for m in request.messages
+                         if not m.is_response and m.kind == 'fax'])
+    if message.id in already_faxed:
+        return False
 
-    return [
-        m for m in foirequest.messages if (
-            not m.is_response and
-            m.kind == 'email' and
-            m.timestamp >= not_too_long_ago and
-            m.id not in faxes_originals
-        )
-    ]
+    return True
+
+
+def get_faxable_messages_from_foirequest(foirequest, **kwargs):
+    return [m for m in foirequest.messages
+            if message_can_be_faxed(m, **kwargs)]
 
 
 def send_messages_of_request(foirequest):
-    from .tasks import send_message_as_fax_task
-
     if not foirequest.law.requires_signature:
         return
 
     messages = get_faxable_messages_from_foirequest(foirequest)
     for message in messages:
-        send_message_as_fax_task.delay(message.pk)
+        create_fax_message(message)
+
+
+def create_fax_message(message):
+    from .tasks import send_fax_message_task
+
+    if not message_can_be_faxed(message):
+        return
+
+    fax_message = FoiMessage.objects.create(
+        kind='fax',
+        request=message.request,
+        subject=message.subject,
+        subject_redacted=message.subject_redacted,
+        is_response=False,
+        sender_user=message.sender_user,
+        sender_name=message.sender_name,
+        sender_email=message.sender_email,
+        recipient_email=message.recipient_public_body.fax,
+        recipient_public_body=message.recipient_public_body,
+        recipient=message.recipient,
+        timestamp=timezone.now(),
+        plaintext='',
+        original=message
+    )
+    send_fax_message_task.delay(fax_message.pk)
+    return fax_message

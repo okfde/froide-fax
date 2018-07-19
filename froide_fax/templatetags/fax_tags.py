@@ -1,7 +1,10 @@
 from django import template
 
 from ..forms import SignatureForm
-from ..utils import get_faxable_messages_from_foirequest
+from ..utils import (
+    get_faxable_messages_from_foirequest, message_can_be_faxed,
+    get_signature
+)
 
 register = template.Library()
 
@@ -20,9 +23,19 @@ def foirequest_needs_signature(foirequest):
     if not fax_number:
         return False
 
-    messages = get_faxable_messages_from_foirequest(foirequest)
-    print(messages)
+    messages = get_faxable_messages_from_foirequest(
+        foirequest, ignore_signature=True
+    )
     if not messages:
         return False
 
+    if get_signature(foirequest.user):
+        # Already has signature
+        return False
+
     return True
+
+
+@register.filter
+def can_fax_message(message):
+    return message_can_be_faxed(message, ignore_time=True)

@@ -1,4 +1,4 @@
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -6,15 +6,21 @@ from django.views.generic import FormView
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.core.mail import mail_managers
+from django.views.decorators.http import require_POST
 
 from froide.foirequest.models import (
     FoiMessage, FoiAttachment, DeliveryStatus
 )
 from froide.foirequest.views.attachment import send_attachment_file
+from froide.foirequest.auth import can_write_foirequest
 from froide.helper.utils import get_redirect_url
 
 from .forms import SignatureForm
-from .utils import unsign_attachment_id, unsign_message_id
+from .utils import (
+    unsign_attachment_id, unsign_message_id, message_can_be_faxed,
+    create_fax_message
+)
 from .tasks import retry_fax_delivery
 
 
@@ -28,6 +34,7 @@ def fax_media_url(request, signed):
 
 
 @csrf_exempt
+@require_POST
 def fax_status_callback(request, signed):
     message_id = unsign_message_id(signed)
     if message_id is None:
@@ -60,20 +67,25 @@ def fax_status_callback(request, signed):
             last_update=timezone.now(),
         )
     )
-
-    if status == DeliveryStatus.STATUS_RECEIVED:
-        ds.log = current_log.strip()
-        message.timestamp = ds.last_update
-        message.save()
-    else:
-        ds.log += '\n\n%s' % current_log.strip()
+    ds.log += '\n\n%s' % current_log.strip()
+    ds.log = ds.log.strip()
     ds.save()
 
+    if status == DeliveryStatus.STATUS_RECEIVED:
+        message.timestamp = ds.last_update
+        message.save()
+
     if status == DeliveryStatus.STATUS_DEFERRED:
-        # Retry fax delivery in 45 minutes
-        retry_fax_delivery.apply_async(
-            (message.pk,), {}, countdown=45 * 60
-        )
+        if ds.retry_count > 4:
+            mail_managers(
+                _('Fax Delivery failed after 6 attempts'),
+                message.get_absolute_domain_short_url()
+            )
+        else:
+            # Retry fax delivery in 15 minutes
+            retry_fax_delivery.apply_async(
+                (message.pk,), {}, countdown=15 * 60
+            )
 
     return HttpResponse(status=204)
 
@@ -102,3 +114,16 @@ class UpdateSignatureView(LoginRequiredMixin, FormView):
 
     def get_success_url(self):
         return get_redirect_url(self.request)
+
+
+@require_POST
+def send_as_fax(request, message_id):
+    message = get_object_or_404(FoiMessage, id=message_id)
+    if not can_write_foirequest(message.request, request):
+        return HttpResponse(status=403)
+    if not message_can_be_faxed(message):
+        return HttpResponse(status=400)
+
+    fax_message = create_fax_message(message)
+
+    return redirect(fax_message)
