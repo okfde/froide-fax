@@ -63,6 +63,8 @@ def fax_status_callback(request, signed):
 
     if status == DeliveryStatus.STATUS_RECEIVED:
         ds.log = current_log.strip()
+        message.timestamp = ds.last_update
+        message.save()
     else:
         ds.log += '\n\n%s' % current_log.strip()
     ds.save()
