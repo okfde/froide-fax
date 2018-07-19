@@ -7,15 +7,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-07-10 12:24+0200\n"
-"PO-Revision-Date: 2018-07-10 12:30+0100\n"
+"POT-Creation-Date: 2018-07-19 16:21+0200\n"
+"PO-Revision-Date: 2018-07-19 16:22+0100\n"
+"Last-Translator: Stefan Wehrmeyer <stefan.wehrmeyer@okfn.org>\n"
+"Language-Team: \n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Last-Translator: Stefan Wehrmeyer <stefan.wehrmeyer@okfn.org>\n"
-"Language-Team: \n"
 "X-Generator: Poedit 1.7.5\n"
 
 #: apps.py:8
@@ -33,6 +33,19 @@ msgstr "Unterschrift"
 #: models.py:33
 msgid "Signatures"
 msgstr "Unterschriften"
+
+#: templates/froide_fax/_send_message_form.html:5
+msgid ""
+"This message has been send as an email. If the authority indicated that it "
+"is not replying to emails, you can send this message as a fax."
+msgstr ""
+"Diese Nachricht wurde als E-mail versendet. Falls die Behörde angibt, auf "
+"die Schriftform zu bestehen, können Sie diese Nachricht auch als Fax "
+"versenden."
+
+#: templates/froide_fax/_send_message_form.html:10
+msgid "Send this message as a fax"
+msgstr "Diese Nachricht als Fax versenden"
 
 #: templates/froide_fax/_signature_form.html:6
 msgid "Save your signature"
@@ -99,10 +112,14 @@ msgstr "Rückgängig"
 msgid "Clear"
 msgstr "Leeren"
 
-#: views.py:75
+#: views.py:81
+msgid "Fax Delivery failed after 6 attempts"
+msgstr "Fax-Zustellung nach 6 Versuchen fehlgeschlagen"
+
+#: views.py:107
 msgid "Signature has been saved."
 msgstr "Unterschrift wurde gespeichert."
 
-#: views.py:79
+#: views.py:111
 msgid "Signature has been removed."
 msgstr "Unterschrift wurde gelöscht."
