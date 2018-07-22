@@ -9,7 +9,7 @@ from froide.foirequest.models import FoiRequest
 
 from .models import Signature
 from .widgets import SignatureWidget
-from .utils import get_signature_path, send_messages_of_request
+from .utils import get_signature, send_messages_of_request
 
 DATA_URL_PNG = 'data:image/png;base64,'
 
@@ -31,11 +31,12 @@ class SignatureForm(forms.Form):
         super(SignatureForm, self).__init__(*args, **kwargs)
         foirequests = FoiRequest.objects.filter(user=self.user)
         self.fields['foirequest'].queryset = foirequests
-        signature_path = get_signature_path(self.user)
-        if signature_path:
-            with open(signature_path, 'rb') as f:
-                b64_string = base64.b64encode(f.read()).decode('utf-8')
-            self.fields['signature'].initial = DATA_URL_PNG + b64_string
+        signature = get_signature(self.user)
+        if signature:
+            signature_bytes = signature.get_signature_bytes()
+            if signature_bytes:
+                b64_string = base64.b64encode(signature_bytes).decode('utf-8')
+                self.fields['signature'].initial = DATA_URL_PNG + b64_string
         if signature_required:
             self.fields['signature'].widget.attrs.update({'required': True})
 

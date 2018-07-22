@@ -34,3 +34,18 @@ class Signature(models.Model):
 
     def __str__(self):
         return str(self.user)
+
+    def get_signature_bytes(self):
+        if not self.signature:
+            return None
+        try:
+            self.signature.open()
+        except IOError:
+            # File was deleted, set field to None
+            self.signature = None
+            self.save()
+            return None
+        try:
+            return self.signature.read()
+        finally:
+            self.signature.close()
