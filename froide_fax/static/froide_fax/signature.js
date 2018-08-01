@@ -21,6 +21,8 @@
     
     var signaturePad = new SignaturePad(canvas, {
       backgroundColor: 'rgb(255, 255, 255)',
+      minWidth: 1,
+      maxWidth: 4,
       onEnd: function() {
         changed = true
         submitButton.disabled = false
