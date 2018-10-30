@@ -35,6 +35,10 @@ class Signature(models.Model):
     def __str__(self):
         return str(self.user)
 
+    def remove_signature_file(self):
+        if self.signature and os.path.exists(self.signature.path):
+            os.remove(self.signature.path)
+
     def get_signature_bytes(self):
         if not self.signature:
             return None
