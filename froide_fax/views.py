@@ -124,6 +124,6 @@ def send_as_fax(request, message_id):
     if not message_can_be_faxed(message, ignore_time=True):
         return HttpResponse(status=400)
 
-    fax_message = create_fax_message(message)
+    fax_message = create_fax_message(message, ignore_time=True)
 
     return redirect(fax_message)

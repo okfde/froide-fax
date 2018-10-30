@@ -150,10 +150,10 @@ def send_messages_of_request(foirequest):
         create_fax_message(message)
 
 
-def create_fax_message(message):
+def create_fax_message(message, ignore_time=False):
     from .tasks import send_fax_message_task
 
-    if not message_can_be_faxed(message):
+    if not message_can_be_faxed(message, ignore_time=ignore_time):
         return
 
     fax_message = FoiMessage.objects.create(
