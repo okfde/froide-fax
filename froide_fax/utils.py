@@ -104,7 +104,8 @@ def unsign_obj_id(signature, salt=None):
     return int(parts[0])
 
 
-def message_can_be_faxed(message, ignore_time=False, ignore_signature=False):
+def message_can_be_faxed(message, ignore_time=False, ignore_signature=False,
+                         ignore_law=False):
     if message is None:
         return False
     if message.kind != 'email':
@@ -113,7 +114,7 @@ def message_can_be_faxed(message, ignore_time=False, ignore_signature=False):
         return False
 
     request = message.request
-    if not request.law.requires_signature:
+    if not ignore_law and not request.law.requires_signature:
         return False
 
     fax_number = ensure_fax_number(message.recipient_public_body)
