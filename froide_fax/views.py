@@ -121,9 +121,13 @@ def send_as_fax(request, message_id):
     message = get_object_or_404(FoiMessage, id=message_id)
     if not can_write_foirequest(message.request, request):
         return HttpResponse(status=403)
-    if not message_can_be_faxed(message, ignore_time=True):
+
+    ignore_law = request.user.is_superuser
+    if not message_can_be_faxed(message, ignore_time=True,
+                                ignore_law=ignore_law):
         return HttpResponse(status=400)
 
-    fax_message = create_fax_message(message, ignore_time=True)
+    fax_message = create_fax_message(message, ignore_time=True,
+                                     ignore_law=ignore_law)
 
     return redirect(fax_message)
