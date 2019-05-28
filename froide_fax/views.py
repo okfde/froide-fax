@@ -12,7 +12,6 @@ from django.views.decorators.http import require_POST
 from froide.foirequest.models import (
     FoiMessage, FoiAttachment, DeliveryStatus
 )
-from froide.foirequest.views.attachment import send_attachment_file
 from froide.foirequest.auth import can_write_foirequest
 from froide.helper.utils import get_redirect_url
 
@@ -30,7 +29,7 @@ def fax_media_url(request, signed):
         return HttpResponse(status=403)
 
     attachment = get_object_or_404(FoiAttachment, pk=attachment_id)
-    return send_attachment_file(attachment)
+    return attachment.send_internal_file()
 
 
 @csrf_exempt
