@@ -42,6 +42,7 @@ def get_signature(user):
     try:
         signature = Signature.objects.get(user=user)
     except Signature.DoesNotExist:
+        user._signature = None
         return None
     user._signature = signature
     return signature
@@ -121,7 +122,7 @@ def message_can_be_faxed(message, ignore_time=False, ignore_signature=False,
     if fax_number is None:
         return False
 
-    sig = get_signature(message.sender_user)
+    sig = get_signature(request.user)
     if not ignore_signature and not sig:
         return False
 
