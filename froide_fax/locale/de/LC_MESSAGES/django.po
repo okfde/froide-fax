@@ -7,45 +7,36 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-07-19 16:21+0200\n"
-"PO-Revision-Date: 2018-07-19 16:40+0100\n"
-"Last-Translator: Stefan Wehrmeyer <stefan.wehrmeyer@okfn.org>\n"
+"POT-Creation-Date: 2019-09-16 13:12+0200\n"
+"PO-Revision-Date: 2019-09-16 13:12+0200\n"
+"Last-Translator: Stefan Wehrmeyer <stefan.wehrmeyer@okfn.de>\n"
 "Language-Team: \n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 1.7.5\n"
+"X-Generator: Poedit 2.2\n"
 
-#: apps.py:8
+#: apps.py:9
 msgid "Froide Fax App"
 msgstr "Froide Fax App"
 
-#: models.py:20
+#: models.py:23
 msgid "User"
 msgstr "Nutzer"
 
-#: models.py:32
+#: models.py:35
 msgid "Signature"
 msgstr "Unterschrift"
 
-#: models.py:33
+#: models.py:36
 msgid "Signatures"
 msgstr "Unterschriften"
 
-#: templates/froide_fax/_send_message_form.html:5
-msgid ""
-"This message has been send as an email. If the authority indicated that it "
-"is not replying to emails, you can send this message as a fax."
-msgstr ""
-"Diese Nachricht wurde als E-Mail versendet. Falls die Behörde angibt, auf "
-"der Schriftform zu bestehen, können Sie diese Nachricht auch als Fax "
-"versenden."
-
-#: templates/froide_fax/_send_message_form.html:10
-msgid "Send this message as a fax"
-msgstr "Diese Nachricht als Fax versenden"
+#: templates/froide_fax/_send_message_form.html:7
+msgid "Send as fax"
+msgstr "Als Fax versenden"
 
 #: templates/froide_fax/_signature_form.html:6
 msgid "Save your signature"
@@ -100,6 +91,18 @@ msgstr "Unterschrift speichern"
 msgid "Delete signature"
 msgstr "Unterschrift löschen"
 
+#: templates/froide_fax/message_letter.html:6
+msgid "Via"
+msgstr "Via"
+
+#: templates/froide_fax/message_letter.html:7
+msgid "Fax and email"
+msgstr "Fax und E-Mail"
+
+#: templates/froide_fax/message_letter.html:11
+msgid "Kind Regards,"
+msgstr "Mit freundlichen Grüßen"
+
 #: templates/froide_fax/widgets/signature.html:15
 msgid "Write your signature in the box above."
 msgstr "Bitte schreiben Sie Ihre Unterschrift in den obigen Kasten."
@@ -112,14 +115,25 @@ msgstr "Rückgängig"
 msgid "Clear"
 msgstr "Leeren"
 
-#: views.py:81
+#: views.py:80
 msgid "Fax Delivery failed after 6 attempts"
 msgstr "Fax-Zustellung nach 6 Versuchen fehlgeschlagen"
 
-#: views.py:107
+#: views.py:106
 msgid "Signature has been saved."
 msgstr "Unterschrift wurde gespeichert."
 
-#: views.py:111
+#: views.py:110
 msgid "Signature has been removed."
 msgstr "Unterschrift wurde gelöscht."
+
+#~ msgid ""
+#~ "This message has been send as an email. If the authority indicated that "
+#~ "it is not replying to emails, you can send this message as a fax."
+#~ msgstr ""
+#~ "Diese Nachricht wurde als E-Mail versendet. Falls die Behörde angibt, auf "
+#~ "der Schriftform zu bestehen, können Sie diese Nachricht auch als Fax "
+#~ "versenden."
+
+#~ msgid "Send this message as a fax"
+#~ msgstr "Diese Nachricht als Fax versenden"
