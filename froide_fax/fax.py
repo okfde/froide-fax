@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.utils import timezone
-from django.core.files import File
+from django.core.files.base import ContentFile
 
 from twilio.rest import Client
 
@@ -18,21 +18,19 @@ from .utils import (
 def create_fax_attachment(fax_message):
     pdf_generator = FaxMessagePDFGenerator(fax_message.original)
 
-    with pdf_generator.get_pdf_filename() as filename:
-        att = FoiAttachment(
-            belongs_to=fax_message,
-            name='fax.pdf',
-            is_redacted=False,
-            filetype='application/pdf',
-            approved=False,
-            can_approve=False
-        )
+    att = FoiAttachment(
+        belongs_to=fax_message,
+        name='fax.pdf',
+        is_redacted=False,
+        filetype='application/pdf',
+        approved=False,
+        can_approve=False
+    )
 
-        with open(filename, 'rb') as f:
-            pdf_file = File(f)
-            att.file = pdf_file
-            att.size = pdf_file.size
-            att.save()
+    pdf_file = ContentFile(pdf_generator.get_pdf_bytes())
+    att.size = pdf_file.size
+    att.file.save(att.name, pdf_file)
+    att.save()
     fax_message._attachments = None
     return att
 

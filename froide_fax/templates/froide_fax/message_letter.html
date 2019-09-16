@@ -1,0 +1,17 @@
+{% extends "foirequest/pdf/message_letter.html" %}
+
+{% load i18n %}
+
+{% block extra_meta %}
+<dt>{% trans "Via" %}</dt>
+<dd>{% trans "Fax and email" %}</dd>
+{% endblock %}
+
+{% block letter_closing %}
+{% trans "Kind Regards," %}
+
+{% if signature %}<img src="{{ signature }}" style="max-width: 50%" alt="">{% endif %}
+
+{{ object.real_sender }}
+
+{% endblock %}

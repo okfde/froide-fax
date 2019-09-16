@@ -37,7 +37,7 @@ setup(
     install_requires=[
         'froide',
         'twilio',
-        'pylatex',
+        'weasyprint',
         'phonenumbers'
     ],
     include_package_data=True,

@@ -48,15 +48,6 @@ def get_signature(user):
     return signature
 
 
-def get_signature_path(user):
-    signature = get_signature(user)
-    if signature is None:
-        return None
-    if not signature.signature:
-        return None
-    return signature.signature.path
-
-
 FAX_MEDIA_SALT = 'fax_media_url'
 FAX_CALLBACK_SALT = 'fax_callback_url'
 

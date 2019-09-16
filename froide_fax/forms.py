@@ -6,11 +6,9 @@ from django.utils import timezone
 
 from froide.foirequest.models import FoiRequest
 
-from .models import Signature
+from .models import Signature, DATA_URL_PNG
 from .widgets import SignatureWidget
 from .utils import get_signature, send_messages_of_request
-
-DATA_URL_PNG = 'data:image/png;base64,'
 
 
 class SignatureForm(forms.Form):
@@ -32,10 +30,9 @@ class SignatureForm(forms.Form):
         self.fields['foirequest'].queryset = foirequests
         signature = get_signature(self.user)
         if signature:
-            signature_bytes = signature.get_signature_bytes()
-            if signature_bytes:
-                b64_string = base64.b64encode(signature_bytes).decode('utf-8')
-                self.fields['signature'].initial = DATA_URL_PNG + b64_string
+            signature_dataurl = signature.get_signature_dataurl()
+            if signature_dataurl:
+                self.fields['signature'].initial = signature_dataurl
         if signature_required:
             self.fields['signature'].widget.attrs.update({'required': True})
 

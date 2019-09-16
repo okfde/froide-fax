@@ -1,34 +1,18 @@
-import shutil
-import os
-
-try:
-    from pylatex import NoEscape
-
-    PDF_EXPORT_AVAILABLE = True
-
-except ImportError:
-    PDF_EXPORT_AVAILABLE = False
-
 from froide.foirequest.pdf_generator import LetterPDFGenerator
 
-from .utils import get_signature_path
+from .utils import get_signature
 
 
 class FaxMessagePDFGenerator(LetterPDFGenerator):
-    def append_closing(self, doc):
-        message = self.obj
-        user = message.sender_user
-        signature_filename = get_signature_path(user)
-        if signature_filename is not None:
-            shutil.copyfile(
-                signature_filename,
-                os.path.join(
-                    self.path, 'signature.png'
-                )
-            )
+    template_name = 'froide_fax/message_letter.html'
 
-            doc.append(NoEscape('''\\closing{Mit freundlichen Grüßen\\\\
-\\includegraphics[height=5em]{signature}
-}'''))
-        else:
-            super(FaxMessagePDFGenerator, self).append_closing(doc)
+    def get_context_data(self, obj):
+        ctx = super().get_context_data(obj)
+        user = obj.sender_user
+        signature = get_signature(user)
+        if signature:
+            ctx.update({
+                'signature': signature.get_signature_dataurl()
+            })
+
+        return ctx
