@@ -29,7 +29,7 @@ def fax_media_url(request, signed):
         return HttpResponse(status=403)
 
     attachment = get_object_or_404(FoiAttachment, pk=attachment_id)
-    return attachment.send_internal_file()
+    return redirect(attachment.get_absolute_domain_file_url(authorized=True))
 
 
 @csrf_exempt
