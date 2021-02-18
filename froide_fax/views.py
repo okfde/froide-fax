@@ -45,13 +45,13 @@ def fax_status_callback(request, signed):
 
     # See https://www.twilio.com/docs/fax/api/faxes#fax-status-values
     if fax_status in ('queued', 'processing', 'sending'):
-        status = DeliveryStatus.STATUS_SENDING
+        status = DeliveryStatus.Delivery.STATUS_SENDING
     elif fax_status in ('delivered', 'received'):
-        status = DeliveryStatus.STATUS_RECEIVED
+        status = DeliveryStatus.Delivery.STATUS_RECEIVED
     elif fax_status in ('no-answer', 'busy'):
-        status = DeliveryStatus.STATUS_DEFERRED
+        status = DeliveryStatus.Delivery.STATUS_DEFERRED
     elif fax_status in ('failed', 'canceled'):
-        status = DeliveryStatus.STATUS_FAILED
+        status = DeliveryStatus.Delivery.STATUS_FAILED
 
     current_log = '%s\n' % timezone.now().isoformat()
     current_log += '\n'.join([
