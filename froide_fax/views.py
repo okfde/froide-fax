@@ -70,11 +70,11 @@ def fax_status_callback(request, signed):
     ds.log = ds.log.strip()
     ds.save()
 
-    if status == DeliveryStatus.STATUS_RECEIVED:
+    if status == DeliveryStatus.Delivery.STATUS_RECEIVED:
         message.timestamp = ds.last_update
         message.save()
 
-    if status == DeliveryStatus.STATUS_DEFERRED:
+    if status == DeliveryStatus.Delivery.STATUS_DEFERRED:
         if ds.retry_count > 4:
             mail_managers(
                 _('Fax Delivery failed after 6 attempts'),
