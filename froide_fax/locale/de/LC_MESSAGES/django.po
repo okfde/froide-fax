@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-09-16 13:12+0200\n"
-"PO-Revision-Date: 2019-09-16 13:12+0200\n"
+"POT-Creation-Date: 2021-03-23 10:53+0000\n"
+"PO-Revision-Date: 2021-03-23 10:54+0000\n"
 "Last-Translator: Stefan Wehrmeyer <stefan.wehrmeyer@okfn.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.2\n"
+"X-Generator: Poedit 2.3\n"
 
 #: apps.py:9
 msgid "Froide Fax App"
@@ -34,9 +34,22 @@ msgstr "Unterschrift"
 msgid "Signatures"
 msgstr "Unterschriften"
 
-#: templates/froide_fax/_send_message_form.html:7
+#: templates/froide_fax/_send_message_form.html:5
+#: templates/froide_fax/_send_message_form.html:13
+#: templates/froide_fax/_send_message_form.html:31
 msgid "Send as fax"
 msgstr "Als Fax versenden"
+
+#: templates/froide_fax/_send_message_form.html:25
+#, python-format
+msgid ""
+"\n"
+"              Send fax to %(name)s with fax number %(fax_number)s.\n"
+"            "
+msgstr ""
+"\n"
+"              Fax an %(name)s senden mit der Faxnummer %(fax_number)s.\n"
+"            "
 
 #: templates/froide_fax/_signature_form.html:6
 msgid "Save your signature"
@@ -115,17 +128,16 @@ msgstr "Rückgängig"
 msgid "Clear"
 msgstr "Leeren"
 
-#: views.py:80
-msgid "Fax Delivery failed after 6 attempts"
-msgstr "Fax-Zustellung nach 6 Versuchen fehlgeschlagen"
-
-#: views.py:106
+#: views.py:108
 msgid "Signature has been saved."
 msgstr "Unterschrift wurde gespeichert."
 
-#: views.py:110
+#: views.py:112
 msgid "Signature has been removed."
 msgstr "Unterschrift wurde gelöscht."
+
+#~ msgid "Fax Delivery failed after 6 attempts"
+#~ msgstr "Fax-Zustellung nach 6 Versuchen fehlgeschlagen"
 
 #~ msgid ""
 #~ "This message has been send as an email. If the authority indicated that "
