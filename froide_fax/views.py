@@ -6,13 +6,13 @@ from django.views.generic import FormView
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.core.mail import mail_managers
 from django.views.decorators.http import require_POST
 
 from froide.foirequest.models import (
     FoiMessage, FoiAttachment, DeliveryStatus
 )
 from froide.foirequest.auth import can_write_foirequest
+from froide.problem.models import ProblemReport
 from froide.helper.utils import get_redirect_url
 
 from .forms import SignatureForm
@@ -76,9 +76,11 @@ def fax_status_callback(request, signed):
 
     if status == DeliveryStatus.Delivery.STATUS_DEFERRED:
         if ds.retry_count > 4:
-            mail_managers(
-                _('Fax Delivery failed after 6 attempts'),
-                message.get_absolute_domain_short_url()
+            ProblemReport.objects.report(
+                message=message,
+                kind='bounce_publicbody',
+                description=ds.log,
+                auto_submitted=True
             )
         else:
             # Retry fax delivery in 15 minutes
