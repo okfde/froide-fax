@@ -1,9 +1,38 @@
 {% load i18n %}
 
-<form class="d-inline" action="{% url 'froide_fax-send_as_fax' message_id=message.id %}" method="post">
-  {% csrf_token %}
-  <button type="submit" class="btn btn-sm btn-secondary">
-    <i class="fa fa-fax"></i>
-    {% trans "Send as fax" %}
-  </button>
-</form>
+<button type="button" class="btn btn-sm mb-1 mx-sm-1 btn-secondary" data-toggle="modal" data-target="#sendfax-{{ message.pk }}">
+  <i class="fa fa-fax"></i>
+  {% translate "Send as fax" %}
+</button>
+
+<div class="modal" data-teleport="body" tabindex="-1" role="dialog" id="sendfax-{{ message.pk }}">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          {% translate "Send as fax" %}
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <form class="d-inline" action="{% url 'froide_fax-send_as_fax' message_id=message.id %}" method="post">
+          {% csrf_token %}
+
+          <p>
+            {% blocktranslate with name=message.recipient_public_body.name fax_number=message.recipient_public_body.fax %}
+              Send fax to {{ name }} with fax number {{ fax_number }}.
+            {% endblocktranslate %}
+          </p>
+          <button type="submit" class="btn btn-sm btn-secondary">
+            <i class="fa fa-fax"></i>
+            {% trans "Send as fax" %}
+          </button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
