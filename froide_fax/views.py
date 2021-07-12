@@ -70,23 +70,27 @@ def fax_status_callback(request, signed):
     ds.log = ds.log.strip()
     ds.save()
 
+    failed = status == DeliveryStatus.Delivery.STATUS_FAILED
+
     if status == DeliveryStatus.Delivery.STATUS_RECEIVED:
         message.timestamp = ds.last_update
         message.save()
-
-    if status == DeliveryStatus.Delivery.STATUS_DEFERRED:
+    elif status == DeliveryStatus.Delivery.STATUS_DEFERRED:
         if ds.retry_count > 4:
-            ProblemReport.objects.report(
-                message=message,
-                kind='bounce_publicbody',
-                description=ds.log,
-                auto_submitted=True
-            )
+            failed = True
         else:
             # Retry fax delivery in 15 minutes
             retry_fax_delivery.apply_async(
                 (message.pk,), {}, countdown=15 * 60
             )
+
+    if failed:
+        ProblemReport.objects.report(
+            message=message,
+            kind='bounce_publicbody',
+            description=ds.log,
+            auto_submitted=True
+        )
 
     return HttpResponse(status=204)
 
