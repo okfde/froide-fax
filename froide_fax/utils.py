@@ -196,7 +196,7 @@ def parse_fax_log(deliverystatus):
         date_fields = ('date_created', 'date_updated')
         for key in date_fields:
             try:
-                data[key] = datetime.fromisoformat(data[key])
+                data[key] = datetime.fromisoformat(data[key].replace('Z', ''))
             except (ValueError, KeyError):
                 data[key] = None
         return data
