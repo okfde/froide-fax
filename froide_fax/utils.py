@@ -228,6 +228,7 @@ def parse_twilio_fax_log(log):
             'from_': re.search(r'From: (.*)').group(1),
             'to': re.search(r'To: (.*)').group(1),
             'sid': fax_sid,
+            'date_created': datetime.fromisoformat(log.splitlines()[0])
         }
     fax_data['csid'] = csid
     fax_data['bit_rate'] = bit_rate
