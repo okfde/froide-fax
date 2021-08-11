@@ -113,6 +113,9 @@ def message_can_be_faxed(message, ignore_time=False, ignore_signature=False,
     if not ignore_law and not request.law.requires_signature:
         return False
 
+    if not message.recipient_public_body:
+        return False
+
     fax_number = ensure_fax_number(message.recipient_public_body)
     if fax_number is None:
         return False
