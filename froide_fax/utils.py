@@ -213,7 +213,7 @@ def parse_twilio_fax_log(log):
     from .fax import get_twilio_fax_data
 
     sid_re = re.compile(r'FaxSid: (FX\w+)')
-    csid_re = re.compile(r'RemoteStationId: (.*)')
+    csid_re = re.compile(r'RemoteStationId: ?(.*)')
     bitrate_re = re.compile(r'BitRate: (\d+)')
     match = sid_re.search(log)
     if match is None:
