@@ -216,7 +216,9 @@ def parse_twilio_fax_log(log):
     if match is None:
         return
     csid = csid_re.search(log).group(1)
-    bit_rate = bitrate_re.search(log).group(1)
+    bit_rate = bitrate_re.search(log)
+    if bit_rate:
+        bit_rate = bit_rate.group(1)
     fax_sid = match.group(1)
     fax_data = get_twilio_fax_data(fax_sid)
     fax_data['csid'] = csid
