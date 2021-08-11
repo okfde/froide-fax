@@ -192,7 +192,10 @@ def parse_fax_log(deliverystatus):
         data = json.loads(log)
         date_fields = ('date_created', 'date_updated')
         for key in date_fields:
-            data[key] = datetime.fromisoformat(data[key])
+            try:
+                data[key] = datetime.fromisoformat(data[key])
+            except (ValueError, KeyError):
+                data[key] = None
         return data
     except ValueError:
         pass
@@ -223,12 +226,16 @@ def parse_twilio_fax_log(log):
     try:
         fax_data = get_twilio_fax_data(fax_sid)
     except Exception:
+        try:
+            date_created = datetime.fromisoformat(log.splitlines()[0])
+        except ValueError:
+            date_created = None
         fax_data = {
             'num_pages': re.search(r'NumPages: (.*)', log).group(1),
             'from_': re.search(r'From: (.*)', log).group(1),
             'to': re.search(r'To: (.*)', log).group(1),
             'sid': fax_sid,
-            'date_created': datetime.fromisoformat(log.splitlines()[0])
+            'date_created': date_created
         }
     fax_data['csid'] = csid
     fax_data['bit_rate'] = bit_rate
