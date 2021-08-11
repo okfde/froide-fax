@@ -104,7 +104,7 @@ def message_can_be_faxed(message, ignore_time=False, ignore_signature=False,
                          ignore_law=False):
     if message is None:
         return False
-    if message.is_email:
+    if not message.is_email:
         return False
     if message.is_response:
         return False
