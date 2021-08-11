@@ -18,8 +18,9 @@ from froide.helper.utils import get_redirect_url
 from .forms import SignatureForm
 from .utils import (
     unsign_attachment_id, unsign_message_id, message_can_be_faxed,
-    create_fax_message
+    create_fax_message, message_can_get_fax_report
 )
+from .pdf_generator import FaxReportPDFGenerator
 from .tasks import retry_fax_delivery
 
 
@@ -136,3 +137,24 @@ def send_as_fax(request, message_id):
                                      ignore_law=ignore_law)
 
     return redirect(fax_message)
+
+
+def pdf_report(request, message_id):
+    message = get_object_or_404(FoiMessage, id=message_id)
+    if not can_write_foirequest(message.request, request):
+        return HttpResponse(status=403)
+
+    if not message_can_get_fax_report(message):
+        return HttpResponse(status=404)
+
+    pdf_generator = FaxReportPDFGenerator(message)
+
+    response = HttpResponse(
+        pdf_generator.get_pdf_bytes(),
+        content_type='application/pdf'
+    )
+    # response['Content-Disposition'] = (
+    #     'attachment; '
+    #     'filename="fax-report-%s.pdf"' % message.pk
+    # )
+    return response

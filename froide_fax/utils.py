@@ -1,13 +1,17 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
+import json
+import re
 
 from django.core.signing import Signer, BadSignature
 from django.urls import reverse
 from django.conf import settings
 from django.utils import timezone
+from django.core.serializers.json import DjangoJSONEncoder
 
 import phonenumbers
 
-from froide.foirequest.models import FoiMessage
+from froide.foirequest.models import FoiMessage, DeliveryStatus
+from froide.foirequest.models.message import MessageKind
 
 from .models import Signature
 
@@ -100,7 +104,7 @@ def message_can_be_faxed(message, ignore_time=False, ignore_signature=False,
                          ignore_law=False):
     if message is None:
         return False
-    if message.kind != 'email':
+    if message.is_email:
         return False
     if message.is_response:
         return False
@@ -122,7 +126,7 @@ def message_can_be_faxed(message, ignore_time=False, ignore_signature=False,
         return False
 
     already_faxed = set([m.original_id for m in request.messages
-                         if not m.is_response and m.kind == 'fax'])
+                         if not m.is_response and m.kind == MessageKind.FAX])
     if message.id in already_faxed:
         return False
 
@@ -151,7 +155,7 @@ def create_fax_message(message, ignore_time=False, ignore_law=False):
         return
 
     fax_message = FoiMessage.objects.create(
-        kind='fax',
+        kind=MessageKind.FAX,
         request=message.request,
         subject=message.subject,
         subject_redacted=message.subject_redacted,
@@ -168,3 +172,57 @@ def create_fax_message(message, ignore_time=False, ignore_law=False):
     )
     send_fax_message_task.delay(fax_message.pk)
     return fax_message
+
+
+def message_can_get_fax_report(message):
+    if message.kind != MessageKind.FAX:
+        return False
+
+    try:
+        deliverystatus = message.deliverystatus
+    except DeliveryStatus.DoesNotExist:
+        return False
+
+    return deliverystatus.status == DeliveryStatus.Delivery.STATUS_RECEIVED
+
+
+def parse_fax_log(deliverystatus):
+    log = deliverystatus.log
+    try:
+        data = json.loads(log)
+        date_fields = ('date_created', 'date_updated')
+        for key in date_fields:
+            data[key] = datetime.fromisoformat(data[key])
+        return data
+    except ValueError:
+        pass
+    if 'FaxSid: ' in log:
+        data = parse_twilio_fax_log(log)
+        if data is None:
+            return
+        json_data = json.dumps(data, cls=DjangoJSONEncoder)
+        deliverystatus.log = json_data
+        deliverystatus.save(update_fields=['log'])
+        return data
+
+
+def parse_twilio_fax_log(log):
+    from .fax import get_twilio_fax_data
+
+    sid_re = re.compile(r'FaxSid: (FX\w+)')
+    csid_re = re.compile(r'RemoteStationId: (.*)')
+    bitrate_re = re.compile(r'BitRate: (\d+)')
+    match = sid_re.search(log)
+    if match is None:
+        return
+    csid = csid_re.search(log).group(1)
+    bit_rate = bitrate_re.search(log).group(1)
+    fax_sid = match.group(1)
+    fax_data = get_twilio_fax_data(fax_sid)
+    fax_data['csid'] = csid
+    fax_data['bit_rate'] = bit_rate
+    fields = (
+        'from_', 'to', 'quality', 'num_pages', 'duration', 'status',
+        'date_created', 'date_updated', 'sid', 'csid', 'bit_rate'
+    )
+    return {k: v for k, v in fax_data.items() if k in fields}
