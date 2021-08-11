@@ -153,8 +153,8 @@ def pdf_report(request, message_id):
         pdf_generator.get_pdf_bytes(),
         content_type='application/pdf'
     )
-    # response['Content-Disposition'] = (
-    #     'attachment; '
-    #     'filename="fax-report-%s.pdf"' % message.pk
-    # )
+    response['Content-Disposition'] = (
+        'attachment; '
+        'filename="fax-report-%s.pdf"' % message.pk
+    )
     return response
