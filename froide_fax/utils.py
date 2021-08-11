@@ -220,7 +220,15 @@ def parse_twilio_fax_log(log):
     if bit_rate:
         bit_rate = bit_rate.group(1)
     fax_sid = match.group(1)
-    fax_data = get_twilio_fax_data(fax_sid)
+    try:
+        fax_data = get_twilio_fax_data(fax_sid)
+    except Exception:
+        fax_data = {
+            'num_pages': re.search(r'NumPages: (.*)').group(1),
+            'from_': re.search(r'From: (.*)').group(1),
+            'to': re.search(r'To: (.*)').group(1),
+            'sid': fax_sid,
+        }
     fax_data['csid'] = csid
     fax_data['bit_rate'] = bit_rate
     fields = (
