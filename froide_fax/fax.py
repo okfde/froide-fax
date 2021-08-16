@@ -6,6 +6,7 @@ from twilio.rest import Client
 
 from froide.foirequest.models import FoiMessage, FoiAttachment, DeliveryStatus
 from froide.foirequest.message_handlers import MessageHandler
+from froide.foirequest.models.message import MessageKind
 
 from .pdf_generator import FaxMessagePDFGenerator
 from .utils import get_media_url, get_status_callback_url, ensure_fax_number
@@ -34,13 +35,25 @@ def create_fax_attachment(fax_message):
 
 
 def send_fax_message(fax_message):
-    if not fax_message.kind == "fax":
+    if not fax_message.kind == MessageKind.FAX:
         return
 
     create_fax_attachment(fax_message)
 
     fax_message.send(notify=False)
     return fax_message
+
+
+def get_twilio_client():
+    account_sid = settings.TWILIO_ACCOUNT_SID
+    auth_token = settings.TWILIO_AUTH_TOKEN
+    return Client(account_sid, auth_token)
+
+
+def get_twilio_fax_data(fax_sid):
+    client = get_twilio_client()
+    fax_data = client.fax.faxes(fax_sid).fetch()
+    return fax_data._properties
 
 
 class FaxMessageHandler(MessageHandler):
@@ -54,6 +67,7 @@ class FaxMessageHandler(MessageHandler):
         att = fax_message.attachments[0]
 
         media_url = get_media_url(att)
+
 
         connection_id = self.get_connection()
 

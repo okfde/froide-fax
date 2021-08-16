@@ -3,7 +3,7 @@ from django import template
 from ..forms import SignatureForm
 from ..utils import (
     get_faxable_messages_from_foirequest, message_can_be_faxed,
-    get_signature
+    get_signature, message_can_get_fax_report
 )
 
 register = template.Library()
@@ -43,3 +43,8 @@ def can_fax_message(message, request):
         ignore_time=True,
         ignore_law=request.user.is_staff
     )
+
+
+@register.filter
+def can_get_fax_report(message):
+    return message_can_get_fax_report(message)
