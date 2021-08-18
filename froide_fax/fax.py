@@ -68,9 +68,6 @@ class FaxMessageHandler(MessageHandler):
 
         media_url = get_media_url(att)
 
-
-        connection_id = self.get_connection()
-
         status_url = get_status_callback_url(fax_message)
 
         ds, created = DeliveryStatus.objects.update_or_create(
@@ -85,15 +82,13 @@ class FaxMessageHandler(MessageHandler):
             "to": fax_number,
             "from_": settings.TELNYX_FROM_NUMBER,
             "media_url": media_url,
-            "connection": connection_id,
+            "connection_id": settings.TELNYX_APP_ID,  # this is a misnomer, app_id goes here
             "quality": "normal",  # choice of normal, high, very_high
             "store_media": "false",
         }
 
         headers = {
             "Authorization": f"Bearer {settings.TELNYX_API_KEY}",
-            "Accept": "application/json",
-            "Content-Type": "application/json",
         }
 
         r = requests.post("https://api.telnyx.com/v2/faxes", headers=headers, data=data)
@@ -107,32 +102,3 @@ class FaxMessageHandler(MessageHandler):
         FoiMessage.objects.filter(pk=fax_message.pk).update(
             email_message_id=fax_id, sent=sent
         )
-
-    def get_connection(self):
-        headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "Authorization": f"Bearer {settings.TELNYX_API_KEY}",
-        }
-
-        # according to https://developers.telnyx.com/docs/api/v2/programmable-fax/sending-commands
-        # user_name and password are not used for sending faxes
-        # however according to https://developers.telnyx.com/docs/api/v2/connections/Credential-Connections
-        # user_name and password are not option for creating a connection 🙃
-        data = {
-            "connection_name": f"{self.message.make_message_id()}",
-            "user_name": f"{self.message.make_message_id()}",
-            "password": f"{self.message.make_message_id()}",
-        }
-
-        r = requests.post(
-            "https://api.telnyx.com/v2/credential_connections",
-            headers=headers,
-            data=data,
-        )
-
-        connection_details = r.json().get("data")
-        if connection_details:
-            connection_id = connection_details.get("id")
-            if connection_id:
-                return connection_id
