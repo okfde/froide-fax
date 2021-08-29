@@ -4,7 +4,7 @@ from django.utils import translation
 from froide.celery import app as celery_app
 from froide.foirequest.models import FoiMessage
 
-from .fax import send_fax_message
+from .fax import send_fax_message, send_fax_telnyx
 from .utils import create_fax_message
 
 
@@ -42,3 +42,26 @@ def retry_fax_delivery(message_id):
         return
 
     message.resend()
+
+
+@celery_app.task
+def send_test_fax():
+    """
+    send test faxes regularly, possibly with a distinct APP_ID, to gather receipts and ensure fax sending works as intended
+    """
+    to = settings.faxtest_receive_number
+    from_ = settings.TELNYX_FROM_NUMBER
+    media_url = settings.faxtest_pdf_url
+    connection_id = settings.faxtest_app_id or settings.TELNYX_APP_ID
+    authorization = f"Bearer {settings.TELNYX_API_KEY}"
+
+    api_answer = send_fax_telnyx(
+        to=to,
+        from_=from_,
+        media_url=media_url,
+        connection_id=connection_id,
+        authorization=authorization,
+    )
+
+    assert api_answer.status_code == 202
+    # further process results here

@@ -56,6 +56,34 @@ def get_twilio_fax_data(fax_sid):
     return fax_data._properties
 
 
+def send_fax_telnyx(
+    to,
+    from_,
+    media_url,
+    connection_id,
+    authorization="",
+    quality="normal",
+    store_media="false",
+):
+    """this sends a single message through the telnyx fax gateway
+    results / error to be handled by calling instance"""
+    data = {
+        "to": to,
+        "from_": from_,
+        "media_url": media_url,
+        "connection_id": connection_id,  # this is a misnomer, app_id goes here
+        "quality": quality,  # choice of normal, high, very_high
+        "store_media": store_media,
+    }
+
+    headers = {
+        "Authorization": authorization,
+    }
+
+    r = requests.post("https://api.telnyx.com/v2/faxes", headers=headers, data=data)
+    return r
+
+
 class FaxMessageHandler(MessageHandler):
     def run_send(self, **kwargs):
         fax_message = self.message
@@ -78,26 +106,21 @@ class FaxMessageHandler(MessageHandler):
             ),
         )
 
-        data = {
-            "to": fax_number,
-            "from_": settings.TELNYX_FROM_NUMBER,
-            "media_url": media_url,
-            "connection_id": settings.TELNYX_APP_ID,  # this is a misnomer, app_id goes here
-            "quality": "normal",  # choice of normal, high, very_high
-            "store_media": "false",
-        }
+        fax_send = send_fax_telnyx(
+            to=fax_number,
+            from_=settings.TELNYX_FROM_NUMBER,
+            media_url=media_url,
+            connection_id=settings.TELNYX_APP_ID,
+            quality="normal",
+            store_media=False,
+            authorization=f"Bearer {settings.TELNYX_API_KEY}",
+        )
 
-        headers = {
-            "Authorization": f"Bearer {settings.TELNYX_API_KEY}",
-        }
-
-        r = requests.post("https://api.telnyx.com/v2/faxes", headers=headers, data=data)
-
-        fax_id = r.json().get("data")
+        fax_id = fax_send.json().get("data")
         if fax_id:
             fax_id = fax_id.get("id")
 
-        sent = r.status_code == 202
+        sent = fax_send.status_code == 202
         # store fax.sid in message 'email_message_id' (misnomer)
         FoiMessage.objects.filter(pk=fax_message.pk).update(
             email_message_id=fax_id, sent=sent
