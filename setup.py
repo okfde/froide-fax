@@ -38,7 +38,8 @@ setup(
         'froide',
         'twilio',
         'weasyprint',
-        'phonenumbers'
+        'phonenumbers',
+        'pynacl'
     ],
     include_package_data=True,
     classifiers=[
