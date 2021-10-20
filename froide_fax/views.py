@@ -18,7 +18,7 @@ from froide.problem.models import ProblemReport
 from froide.helper.utils import get_redirect_url
 
 from nacl.encoding import Base64Encoder
-from nacl.signing import VerifyKey
+from nacl.signing import VerifyKey, BadSignatureError
 
 from .forms import SignatureForm
 from .utils import (
@@ -121,7 +121,7 @@ def fax_status_callback(request, signed=None):
         # verify signature
         try:
             verify_key.verify(message, signature=signature)
-        except:
+        except BadSignatureError:
             return HttpResponseForbidden("invalid signature", content_type="text/plain")
 
         payload_json = json.loads(request.body)
@@ -130,9 +130,11 @@ def fax_status_callback(request, signed=None):
         fax_id = None
         try:
             fax_id = payload_json.get("data").get("payload").get("fax_id")
-        except:
+        except AttributeError as e:
             # this key should always exist. we should never end up here
-            return False
+            raise ValueError(
+                f"This is not a valid API response body: {request.body}"
+            ) from e
 
         if fax_id:
             fax_message = get_object_or_404(FoiMessage, email_message_id=fax_id)
@@ -140,30 +142,31 @@ def fax_status_callback(request, signed=None):
         # find status
         try:
             status = payload_json.get("data").get("payload").get("status")
-        except:
+        except AttributeError as e:
             # we should never end up here either
-            return False
+            raise ValueError(
+                f"This is not a valid API response body: {request.body}"
+            ) from e
 
         # python 3.10 could use caste-statement
-        if "status" == "failed":
+        if status == "failed":
             status = DeliveryStatus.Delivery.STATUS_FAILED
-        elif "status" == "queued":
+        elif status == "queued":
             status = DeliveryStatus.Delivery.STATUS_UNKNOWN
-        elif "status" == "media.processed":
+        elif status == "media.processed":
             status = DeliveryStatus.Delivery.STATUS_UNKNOWN
-        elif "status" == "sending.started":
+        elif status == "sending.started":
             status = DeliveryStatus.Delivery.STATUS_SENDING
-        elif "status" == "delivered":
+        elif status == "delivered":
             status = DeliveryStatus.Delivery.STATUS_SENT
-
-        if not status:
+        else:
             # again: we should not end up here. according to telnyx-docu those are all possible stati
-            return False
+            raise ValueError(f"This is not a valid status response: {status}")
 
         # only try and update if the timestamp in request is more recent than the one in the database
         dt = datetime.datetime.fromtimestamp(int(event_timestamp))
         if fax_message.deliverystatus.last_update > dt:
-            return False
+            return HttpResponse(status=409)
 
         # persist to database
         current_log = "%s\n" % timezone.now().isoformat()
