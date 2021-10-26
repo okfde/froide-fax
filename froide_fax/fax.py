@@ -62,7 +62,7 @@ def send_fax_telnyx(
     media_url,
     connection_id,
     authorization="",
-    quality="normal",
+    quality="high",
 ):
     """this sends a single message through the telnyx fax gateway
     results / error to be handled by calling instance"""
