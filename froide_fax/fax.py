@@ -112,13 +112,13 @@ class FaxMessageHandler(MessageHandler):
             ),
         )
 
-        fax_send = send_fax(fax_number, media_url)
+        fax_response = send_fax(fax_number, media_url)
 
-        fax_id = fax_send.json().get("data")
-        if fax_id:
-            fax_id = fax_id.get("id")
+        fax_data = fax_response.json().get("data")
+        if fax_data:
+            fax_id = fax_data.get("id", "")
 
-        sent = fax_send.status_code == 202
+        sent = fax_response.status_code == 202
         # store fax.sid in message 'email_message_id' (misnomer)
         FoiMessage.objects.filter(pk=fax_message.pk).update(
             email_message_id=fax_id, sent=sent
