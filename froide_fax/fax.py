@@ -4,16 +4,14 @@ from django.core.files.base import ContentFile
 
 from twilio.rest import Client
 
-from froide.foirequest.models import (
-    FoiMessage, FoiAttachment, DeliveryStatus
-)
+from froide.foirequest.models import FoiMessage, FoiAttachment, DeliveryStatus
 from froide.foirequest.message_handlers import MessageHandler
 from froide.foirequest.models.message import MessageKind
 
 from .pdf_generator import FaxMessagePDFGenerator
-from .utils import (
-    get_media_url, get_status_callback_url, ensure_fax_number
-)
+from .utils import get_media_url, get_status_callback_url, ensure_fax_number
+
+import requests
 
 
 def create_fax_attachment(fax_message):
@@ -21,11 +19,11 @@ def create_fax_attachment(fax_message):
 
     att = FoiAttachment(
         belongs_to=fax_message,
-        name='fax.pdf',
+        name="fax.pdf",
         is_redacted=False,
-        filetype='application/pdf',
+        filetype="application/pdf",
         approved=False,
-        can_approve=False
+        can_approve=False,
     )
 
     pdf_file = ContentFile(pdf_generator.get_pdf_bytes())
@@ -58,6 +56,46 @@ def get_twilio_fax_data(fax_sid):
     return fax_data._properties
 
 
+def send_fax_telnyx(
+    to,
+    from_,
+    media_url,
+    connection_id,
+    authorization="",
+    quality="normal",
+    store_media="false",
+):
+    """this sends a single message through the telnyx fax gateway
+    results / error to be handled by calling instance"""
+    data = {
+        "to": to,
+        "from_": from_,
+        "media_url": media_url,
+        "connection_id": connection_id,  # this is a misnomer, app_id goes here
+        "quality": quality,  # choice of normal, high, very_high
+        "store_media": store_media,
+    }
+
+    headers = {
+        "Authorization": authorization,
+    }
+
+    r = requests.post("https://api.telnyx.com/v2/faxes", headers=headers, data=data)
+    return r
+
+
+def send_fax(fax_number, media_url):
+    return send_fax_telnyx(
+        to=fax_number,
+        from_=settings.TELNYX_FROM_NUMBER,
+        media_url=media_url,
+        connection_id=settings.TELNYX_APP_ID,
+        quality="normal",
+        store_media=False,
+        authorization=f"Bearer {settings.TELNYX_API_KEY}",
+    )
+
+
 class FaxMessageHandler(MessageHandler):
     def run_send(self, **kwargs):
         fax_message = self.message
@@ -69,28 +107,23 @@ class FaxMessageHandler(MessageHandler):
         att = fax_message.attachments[0]
 
         media_url = get_media_url(att)
-        status_url = get_status_callback_url(fax_message)
-
-        client = get_twilio_client()
 
         ds, created = DeliveryStatus.objects.update_or_create(
             message=fax_message,
             defaults=dict(
                 status=DeliveryStatus.Delivery.STATUS_SENDING,
                 last_update=timezone.now(),
-            )
+            ),
         )
 
-        fax = client.fax.faxes.create(
-            to=fax_number,
-            from_=settings.TWILIO_FROM_NUMBER,
-            media_url=media_url,
-            quality='standard',
-            status_callback=status_url,
-            store_media=False
-        )
+        fax_send = send_fax(fax_number, media_url)
 
+        fax_id = fax_send.json().get("data")
+        if fax_id:
+            fax_id = fax_id.get("id")
+
+        sent = fax_send.status_code == 202
         # store fax.sid in message 'email_message_id' (misnomer)
         FoiMessage.objects.filter(pk=fax_message.pk).update(
-            email_message_id=fax.sid, sent=True
+            email_message_id=fax_id, sent=sent
         )
