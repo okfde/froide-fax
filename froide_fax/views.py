@@ -177,7 +177,7 @@ def fax_status_callback(request, signed=None):
         current_log += "\n".join(["%s: %s" % (k, v) for k, v in request.POST.items()])
 
         ds, created = DeliveryStatus.objects.update_or_create(
-            message=message,
+            message=fax_message,
             defaults=dict(
                 status=status,
                 last_update=timezone.now(),
