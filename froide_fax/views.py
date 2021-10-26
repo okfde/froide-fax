@@ -18,7 +18,8 @@ from froide.problem.models import ProblemReport
 from froide.helper.utils import get_redirect_url
 
 from nacl.encoding import Base64Encoder
-from nacl.signing import VerifyKey, BadSignatureError
+from nacl.signing import VerifyKey
+from nacl.exceptions import BadSignatureError
 import pytz
 
 from .forms import SignatureForm
