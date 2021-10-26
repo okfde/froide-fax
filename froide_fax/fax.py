@@ -63,7 +63,6 @@ def send_fax_telnyx(
     connection_id,
     authorization="",
     quality="normal",
-    store_media="false",
 ):
     """this sends a single message through the telnyx fax gateway
     results / error to be handled by calling instance"""
@@ -73,7 +72,6 @@ def send_fax_telnyx(
         "media_url": media_url,
         "connection_id": connection_id,  # this is a misnomer, app_id goes here
         "quality": quality,  # choice of normal, high, very_high
-        "store_media": store_media,
     }
 
     headers = {
@@ -90,8 +88,6 @@ def send_fax(fax_number, media_url):
         from_=settings.TELNYX_FROM_NUMBER,
         media_url=media_url,
         connection_id=settings.TELNYX_APP_ID,
-        quality="normal",
-        store_media=False,
         authorization=f"Bearer {settings.TELNYX_API_KEY}",
     )
 
