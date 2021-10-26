@@ -29,6 +29,7 @@ from .utils import (
     message_can_be_faxed,
     create_fax_message,
     message_can_get_fax_report,
+    create_fax_log,
 )
 from .pdf_generator import FaxReportPDFGenerator
 from .tasks import retry_fax_delivery
@@ -172,10 +173,6 @@ def fax_status_callback(request, signed=None):
         if fax_message.deliverystatus.last_update > dt:
             return HttpResponse(status=409)
 
-        # persist to database
-        current_log = "%s\n" % timezone.now().isoformat()
-        current_log += "\n".join(["%s: %s" % (k, v) for k, v in request.POST.items()])
-
         ds, created = DeliveryStatus.objects.update_or_create(
             message=fax_message,
             defaults=dict(
@@ -183,8 +180,19 @@ def fax_status_callback(request, signed=None):
                 last_update=timezone.now(),
             ),
         )
-        ds.log += "\n\n%s" % current_log.strip()
-        ds.log = ds.log.strip()
+        data = payload_json.get("data")
+
+        # Create machine-readable log
+        fax_log_data = {
+            "from_": data["payload"]["from"],
+            "to": data["payload"]["to"],
+            "sid": data["payload"]["fax_id"],
+            "status": data["payload"]["status"],
+            "num_pages": data["payload"].get("page_count", 0),
+            "duration": data["payload"].get("call_duration_secs", 0),
+            "date_created": data["occurred_at"],
+        }
+        ds.log = create_fax_log(ds.log, fax_log_data)
         ds.save()
 
         if status == DeliveryStatus.Delivery.STATUS_RECEIVED:

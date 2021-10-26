@@ -9,7 +9,7 @@ from froide.foirequest.message_handlers import MessageHandler
 from froide.foirequest.models.message import MessageKind
 
 from .pdf_generator import FaxMessagePDFGenerator
-from .utils import get_media_url, get_status_callback_url, ensure_fax_number
+from .utils import get_media_url, ensure_fax_number
 
 import requests
 
