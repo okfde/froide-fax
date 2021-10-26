@@ -198,6 +198,10 @@ def message_can_get_fax_report(message):
     return deliverystatus.status == DeliveryStatus.Delivery.STATUS_RECEIVED
 
 
+def create_fax_log(previous_log, data):
+    return json.dumps(data, cls=DjangoJSONEncoder)
+
+
 def parse_fax_log(deliverystatus):
     log = deliverystatus.log
     try:
