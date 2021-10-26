@@ -159,7 +159,7 @@ def fax_status_callback(request, signed=None):
             status = DeliveryStatus.Delivery.STATUS_UNKNOWN
         elif status == "media.processed":
             status = DeliveryStatus.Delivery.STATUS_UNKNOWN
-        elif status == "sending.started":
+        elif status.startswith("sending"):
             status = DeliveryStatus.Delivery.STATUS_SENDING
         elif status == "delivered":
             status = DeliveryStatus.Delivery.STATUS_SENT
