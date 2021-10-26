@@ -57,6 +57,13 @@ FAX_CALLBACK_SALT = 'fax_callback_url'
 
 
 def get_media_url(att):
+    # Telnyx doesn't seem to follow redirects
+    # Give short-lived direct authenticated URL
+    # instead of permanent signed URL that redirects
+    return att.get_absolute_domain_file_url(authorized=True)
+
+
+def get_signed_media_url(att):
     attachment_signature = sign_obj_id(att.pk, salt=FAX_MEDIA_SALT)
     return settings.SITE_URL + reverse('froide_fax-media_url', kwargs={
         'signed': attachment_signature
