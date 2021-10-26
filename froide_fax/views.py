@@ -19,6 +19,7 @@ from froide.helper.utils import get_redirect_url
 
 from nacl.encoding import Base64Encoder
 from nacl.signing import VerifyKey, BadSignatureError
+import pytz
 
 from .forms import SignatureForm
 from .utils import (
@@ -164,7 +165,7 @@ def fax_status_callback(request, signed=None):
             raise ValueError(f"This is not a valid status response: {status}")
 
         # only try and update if the timestamp in request is more recent than the one in the database
-        dt = datetime.datetime.fromtimestamp(int(event_timestamp))
+        dt = datetime.datetime.fromtimestamp(int(event_timestamp), pytz.timezone("UTC"))
         if fax_message.deliverystatus.last_update > dt:
             return HttpResponse(status=409)
 
@@ -197,7 +198,7 @@ def fax_status_callback(request, signed=None):
                 auto_submitted=True,
             )
 
-        return HttpResponse(status=204)
+        return HttpResponse(status=200)
 
 
 class UpdateSignatureView(LoginRequiredMixin, FormView):

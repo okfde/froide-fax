@@ -84,6 +84,18 @@ def send_fax_telnyx(
     return r
 
 
+def send_fax(fax_number, media_url):
+    return send_fax_telnyx(
+        to=fax_number,
+        from_=settings.TELNYX_FROM_NUMBER,
+        media_url=media_url,
+        connection_id=settings.TELNYX_APP_ID,
+        quality="normal",
+        store_media=False,
+        authorization=f"Bearer {settings.TELNYX_API_KEY}",
+    )
+
+
 class FaxMessageHandler(MessageHandler):
     def run_send(self, **kwargs):
         fax_message = self.message
@@ -96,8 +108,6 @@ class FaxMessageHandler(MessageHandler):
 
         media_url = get_media_url(att)
 
-        status_url = get_status_callback_url(fax_message)
-
         ds, created = DeliveryStatus.objects.update_or_create(
             message=fax_message,
             defaults=dict(
@@ -106,15 +116,7 @@ class FaxMessageHandler(MessageHandler):
             ),
         )
 
-        fax_send = send_fax_telnyx(
-            to=fax_number,
-            from_=settings.TELNYX_FROM_NUMBER,
-            media_url=media_url,
-            connection_id=settings.TELNYX_APP_ID,
-            quality="normal",
-            store_media=False,
-            authorization=f"Bearer {settings.TELNYX_API_KEY}",
-        )
+        fax_send = send_fax(fax_number, media_url)
 
         fax_id = fax_send.json().get("data")
         if fax_id:
