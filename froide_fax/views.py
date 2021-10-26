@@ -138,8 +138,10 @@ def fax_status_callback(request, signed=None):
                 f"This is not a valid API response body: {request.body}"
             ) from e
 
-        if fax_id:
-            fax_message = get_object_or_404(FoiMessage, email_message_id=fax_id)
+        if not fax_id:
+            raise ValueError(f"This is not a valid API response body: {request.body}")
+
+        fax_message = get_object_or_404(FoiMessage, email_message_id=fax_id)
 
         # find status
         try:
