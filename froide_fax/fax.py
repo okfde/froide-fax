@@ -69,7 +69,7 @@ def send_fax_telnyx(
     results / error to be handled by calling instance"""
     data = {
         "to": to,
-        "from_": from_,
+        "from": from_,
         "media_url": media_url,
         "connection_id": connection_id,  # this is a misnomer, app_id goes here
         "quality": quality,  # choice of normal, high, very_high
