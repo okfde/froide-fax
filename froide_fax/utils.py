@@ -195,7 +195,10 @@ def message_can_get_fax_report(message):
     except DeliveryStatus.DoesNotExist:
         return False
 
-    return deliverystatus.status == DeliveryStatus.Delivery.STATUS_RECEIVED
+    return deliverystatus.status in (
+        DeliveryStatus.Delivery.STATUS_SENT,
+        DeliveryStatus.Delivery.STATUS_RECEIVED
+    )
 
 
 def create_fax_log(previous_log, data):
