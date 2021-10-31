@@ -2,8 +2,6 @@ from django.conf import settings
 from django.utils import timezone
 from django.core.files.base import ContentFile
 
-from twilio.rest import Client
-
 from froide.foirequest.models import FoiMessage, FoiAttachment, DeliveryStatus
 from froide.foirequest.message_handlers import MessageHandler
 from froide.foirequest.models.message import MessageKind
