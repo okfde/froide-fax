@@ -44,18 +44,6 @@ def send_fax_message(fax_message):
     return fax_message
 
 
-def get_twilio_client():
-    account_sid = settings.TWILIO_ACCOUNT_SID
-    auth_token = settings.TWILIO_AUTH_TOKEN
-    return Client(account_sid, auth_token)
-
-
-def get_twilio_fax_data(fax_sid):
-    client = get_twilio_client()
-    fax_data = client.fax.faxes(fax_sid).fetch()
-    return fax_data._properties
-
-
 def send_fax_telnyx(
     to,
     from_,
