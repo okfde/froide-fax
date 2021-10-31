@@ -20,18 +20,16 @@ def ensure_fax_number(publicbody):
     if not publicbody.fax:
         return None
     try:
-        number = phonenumbers.parse(publicbody.fax, 'DE')
+        number = phonenumbers.parse(publicbody.fax, "DE")
     except phonenumbers.phonenumberutil.NumberParseException:
         return None
     if not phonenumbers.is_possible_number(number):
-        publicbody.fax = ''
+        publicbody.fax = ""
         publicbody.save()
         return None
     if not phonenumbers.is_valid_number(number):
         return None
-    fax_number = phonenumbers.format_number(
-        number, phonenumbers.PhoneNumberFormat.E164
-    )
+    fax_number = phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
     if fax_number != publicbody.fax:
         publicbody.fax = fax_number
         publicbody.save()
@@ -41,7 +39,7 @@ def ensure_fax_number(publicbody):
 def get_signature(user):
     if user is None:
         return None
-    if hasattr(user, '_signature'):
+    if hasattr(user, "_signature"):
         return user._signature
     try:
         signature = Signature.objects.get(user=user)
@@ -52,36 +50,27 @@ def get_signature(user):
     return signature
 
 
-FAX_MEDIA_SALT = 'fax_media_url'
-FAX_CALLBACK_SALT = 'fax_callback_url'
+FAX_MEDIA_SALT = "fax_media_url"
+FAX_CALLBACK_SALT = "fax_callback_url"
 
 
 def get_media_url(att):
-    # Telnyx doesn't seem to follow redirects
-    # Give short-lived direct authenticated URL
-    # instead of permanent signed URL that redirects
-    return att.get_absolute_domain_file_url(authorized=True)
-
-
-def get_signed_media_url(att):
     attachment_signature = sign_obj_id(att.pk, salt=FAX_MEDIA_SALT)
-    return settings.SITE_URL + reverse('froide_fax-media_url', kwargs={
-        'signed': attachment_signature
-    })
+    return settings.SITE_URL + reverse(
+        "froide_fax-media_url", kwargs={"signed": attachment_signature}
+    )
 
 
 def get_status_callback_url(message):
     attachment_signature = sign_obj_id(message.pk, salt=FAX_CALLBACK_SALT)
-    return settings.SITE_URL + reverse('froide_fax-status_callback', kwargs={
-        'signed': attachment_signature
-    })
+    return settings.SITE_URL + reverse(
+        "froide_fax-status_callback", kwargs={"signed": attachment_signature}
+    )
 
 
 def sign_obj_id(obj_id, salt=None):
     signer = Signer(salt=salt)
-    value = signer.sign('%s@%s' % (
-        obj_id, settings.TWILIO_ACCOUNT_SID)
-    )
+    value = signer.sign("%s@%s" % (obj_id, settings.TWILIO_ACCOUNT_SID))
     return value
 
 
@@ -99,7 +88,7 @@ def unsign_obj_id(signature, salt=None):
         original = signer.unsign(signature)
     except BadSignature:
         return None
-    parts = original.split('@', 1)
+    parts = original.split("@", 1)
     if len(parts) != 2:
         return None
     if parts[1] != settings.TWILIO_ACCOUNT_SID:
@@ -107,8 +96,9 @@ def unsign_obj_id(signature, salt=None):
     return int(parts[0])
 
 
-def message_can_be_faxed(message, ignore_time=False, ignore_signature=False,
-                         ignore_law=False):
+def message_can_be_faxed(
+    message, ignore_time=False, ignore_signature=False, ignore_law=False
+):
     if message is None:
         return False
     if not message.is_email:
@@ -135,8 +125,13 @@ def message_can_be_faxed(message, ignore_time=False, ignore_signature=False,
     if not ignore_time and message.timestamp < not_too_long_ago:
         return False
 
-    already_faxed = set([m.original_id for m in request.messages
-                         if not m.is_response and m.kind == MessageKind.FAX])
+    already_faxed = set(
+        [
+            m.original_id
+            for m in request.messages
+            if not m.is_response and m.kind == MessageKind.FAX
+        ]
+    )
     if message.id in already_faxed:
         return False
 
@@ -144,8 +139,7 @@ def message_can_be_faxed(message, ignore_time=False, ignore_signature=False,
 
 
 def get_faxable_messages_from_foirequest(foirequest, **kwargs):
-    return [m for m in foirequest.messages
-            if message_can_be_faxed(m, **kwargs)]
+    return [m for m in foirequest.messages if message_can_be_faxed(m, **kwargs)]
 
 
 def send_messages_of_request(foirequest):
@@ -160,8 +154,9 @@ def send_messages_of_request(foirequest):
 def create_fax_message(message, ignore_time=False, ignore_law=False):
     from .tasks import send_fax_message_task
 
-    if not message_can_be_faxed(message, ignore_time=ignore_time,
-                                ignore_law=ignore_law):
+    if not message_can_be_faxed(
+        message, ignore_time=ignore_time, ignore_law=ignore_law
+    ):
         return
 
     fax_message = FoiMessage.objects.create(
@@ -177,8 +172,8 @@ def create_fax_message(message, ignore_time=False, ignore_law=False):
         recipient_public_body=message.recipient_public_body,
         recipient=message.recipient,
         timestamp=timezone.now(),
-        plaintext='',
-        original=message
+        plaintext="",
+        original=message,
     )
     send_fax_message_task.delay(fax_message.pk)
     return fax_message
@@ -193,45 +188,38 @@ def message_can_get_fax_report(message):
     except DeliveryStatus.DoesNotExist:
         return False
 
-    return deliverystatus.status in (
-        DeliveryStatus.Delivery.STATUS_SENT,
-        DeliveryStatus.Delivery.STATUS_RECEIVED
-    )
-
-
-def create_fax_log(previous_log, data):
-    return json.dumps(data, cls=DjangoJSONEncoder)
+    return deliverystatus.status == DeliveryStatus.Delivery.STATUS_RECEIVED
 
 
 def parse_fax_log(deliverystatus):
     log = deliverystatus.log
     try:
         data = json.loads(log)
-        date_fields = ('date_created', 'date_updated')
+        date_fields = ("date_created", "date_updated")
         for key in date_fields:
             try:
-                data[key] = datetime.fromisoformat(data[key].replace('Z', ''))
+                data[key] = datetime.fromisoformat(data[key].replace("Z", ""))
             except (ValueError, KeyError):
                 data[key] = None
         return data
     except ValueError:
         pass
-    if 'FaxSid: ' in log:
+    if "FaxSid: " in log:
         data = parse_twilio_fax_log(log)
         if data is None:
             return
         json_data = json.dumps(data, cls=DjangoJSONEncoder)
         deliverystatus.log = json_data
-        deliverystatus.save(update_fields=['log'])
+        deliverystatus.save(update_fields=["log"])
         return data
 
 
 def parse_twilio_fax_log(log):
     from .fax import get_twilio_fax_data
 
-    sid_re = re.compile(r'FaxSid: (FX\w+)')
-    csid_re = re.compile(r'RemoteStationId: ?(.*)')
-    bitrate_re = re.compile(r'BitRate: (\d+)')
+    sid_re = re.compile(r"FaxSid: (FX\w+)")
+    csid_re = re.compile(r"RemoteStationId: ?(.*)")
+    bitrate_re = re.compile(r"BitRate: (\d+)")
     match = sid_re.search(log)
     if match is None:
         return
@@ -248,16 +236,25 @@ def parse_twilio_fax_log(log):
         except ValueError:
             date_created = None
         fax_data = {
-            'num_pages': re.search(r'NumPages: (.*)', log).group(1),
-            'from_': re.search(r'From: (.*)', log).group(1),
-            'to': re.search(r'To: (.*)', log).group(1),
-            'sid': fax_sid,
-            'date_created': date_created
+            "num_pages": re.search(r"NumPages: (.*)", log).group(1),
+            "from_": re.search(r"From: (.*)", log).group(1),
+            "to": re.search(r"To: (.*)", log).group(1),
+            "sid": fax_sid,
+            "date_created": date_created,
         }
-    fax_data['csid'] = csid
-    fax_data['bit_rate'] = bit_rate
+    fax_data["csid"] = csid
+    fax_data["bit_rate"] = bit_rate
     fields = (
-        'from_', 'to', 'quality', 'num_pages', 'duration', 'status',
-        'date_created', 'date_updated', 'sid', 'csid', 'bit_rate'
+        "from_",
+        "to",
+        "quality",
+        "num_pages",
+        "duration",
+        "status",
+        "date_created",
+        "date_updated",
+        "sid",
+        "csid",
+        "bit_rate",
     )
     return {k: v for k, v in fax_data.items() if k in fields}
