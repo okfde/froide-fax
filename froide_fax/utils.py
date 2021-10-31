@@ -215,8 +215,6 @@ def parse_fax_log(deliverystatus):
 
 
 def parse_twilio_fax_log(log):
-    from .fax import get_twilio_fax_data
-
     sid_re = re.compile(r"FaxSid: (FX\w+)")
     csid_re = re.compile(r"RemoteStationId: ?(.*)")
     bitrate_re = re.compile(r"BitRate: (\d+)")
@@ -229,19 +227,16 @@ def parse_twilio_fax_log(log):
         bit_rate = bit_rate.group(1)
     fax_sid = match.group(1)
     try:
-        fax_data = get_twilio_fax_data(fax_sid)
-    except Exception:
-        try:
-            date_created = datetime.fromisoformat(log.splitlines()[0])
-        except ValueError:
-            date_created = None
-        fax_data = {
-            "num_pages": re.search(r"NumPages: (.*)", log).group(1),
-            "from_": re.search(r"From: (.*)", log).group(1),
-            "to": re.search(r"To: (.*)", log).group(1),
-            "sid": fax_sid,
-            "date_created": date_created,
-        }
+        date_created = datetime.fromisoformat(log.splitlines()[0])
+    except ValueError:
+        date_created = None
+    fax_data = {
+        "num_pages": re.search(r"NumPages: (.*)", log).group(1),
+        "from_": re.search(r"From: (.*)", log).group(1),
+        "to": re.search(r"To: (.*)", log).group(1),
+        "sid": fax_sid,
+        "date_created": date_created,
+    }
     fax_data["csid"] = csid
     fax_data["bit_rate"] = bit_rate
     fields = (
