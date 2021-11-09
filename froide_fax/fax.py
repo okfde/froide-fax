@@ -2,8 +2,6 @@ from django.conf import settings
 from django.utils import timezone
 from django.core.files.base import ContentFile
 
-from twilio.rest import Client
-
 from froide.foirequest.models import FoiMessage, FoiAttachment, DeliveryStatus
 from froide.foirequest.message_handlers import MessageHandler
 from froide.foirequest.models.message import MessageKind
@@ -42,18 +40,6 @@ def send_fax_message(fax_message):
 
     fax_message.send(notify=False)
     return fax_message
-
-
-def get_twilio_client():
-    account_sid = settings.TWILIO_ACCOUNT_SID
-    auth_token = settings.TWILIO_AUTH_TOKEN
-    return Client(account_sid, auth_token)
-
-
-def get_twilio_fax_data(fax_sid):
-    client = get_twilio_client()
-    fax_data = client.fax.faxes(fax_sid).fetch()
-    return fax_data._properties
 
 
 def send_fax_telnyx(
