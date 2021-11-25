@@ -2,7 +2,7 @@ import json
 import datetime
 
 from django.shortcuts import get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import FormView
@@ -21,6 +21,7 @@ from nacl.encoding import Base64Encoder
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 import pytz
+import requests
 
 from .forms import SignatureForm
 from .utils import (
@@ -41,7 +42,17 @@ def fax_media_url(request, signed):
         return HttpResponse(status=403)
 
     attachment = get_object_or_404(FoiAttachment, pk=attachment_id)
-    return redirect(attachment.get_absolute_domain_file_url(authorized=True))
+    url = attachment.get_absolute_domain_file_url(authorized=True)
+
+    # Telnyx does not support redirects
+    # So stream response from CDN URL here
+    response = requests.get(url, stream=True)
+    return StreamingHttpResponse(
+        response.raw,
+        content_type=response.headers.get("content-type"),
+        status=response.status_code,
+        reason=response.reason,
+    )
 
 
 @csrf_exempt

@@ -55,10 +55,7 @@ FAX_CALLBACK_SALT = "fax_callback_url"
 
 
 def get_media_url(att):
-    # Telnyx doesn't seem to follow redirects
-    # Give short-lived direct authenticated URL
-    # instead of permanent signed URL that redirects
-    return att.get_absolute_domain_file_url(authorized=True)
+    return get_signed_media_url(att)
 
 
 def get_signed_media_url(att):
@@ -197,7 +194,7 @@ def message_can_get_fax_report(message):
 
     return deliverystatus.status in (
         DeliveryStatus.Delivery.STATUS_SENT,
-        DeliveryStatus.Delivery.STATUS_RECEIVED
+        DeliveryStatus.Delivery.STATUS_RECEIVED,
     )
 
 
