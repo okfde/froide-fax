@@ -153,7 +153,6 @@ def fax_status_callback(request, signed=None):
                 f"This is not a valid API response body: {request.body}"
             ) from e
 
-        # python 3.10 could use caste-statement
         if status == "failed":
             status = DeliveryStatus.Delivery.STATUS_FAILED
         elif status == "queued":
@@ -190,6 +189,7 @@ def fax_status_callback(request, signed=None):
             "status": data["payload"]["status"],
             "num_pages": data["payload"].get("page_count", 0),
             "duration": data["payload"].get("call_duration_secs", 0),
+            "failure_reason": data["payload"].get("failure_reason"),
             "date_created": data["occurred_at"],
         }
         ds.log = create_fax_log(ds.log, fax_log_data)
