@@ -1,3 +1,6 @@
+import contextlib
+import socket
+
 from django.conf import settings
 from django.utils import timezone
 from django.core.files.base import ContentFile
@@ -10,6 +13,19 @@ from .pdf_generator import FaxMessagePDFGenerator
 from .utils import get_media_url, ensure_fax_number
 
 import requests
+import requests.packages.urllib3.util.connection as urllib3_cn
+
+
+@contextlib.contextmanager
+def patch_requests_only_ipv4():
+    """
+    Patch requests to force use of IPv4
+    """
+
+    original_func = urllib3_cn.allowed_gai_family
+    urllib3_cn.allowed_gai_family = lambda: socket.AF_INET
+    yield
+    urllib3_cn.allowed_gai_family = original_func
 
 
 def create_fax_attachment(fax_message):
@@ -63,8 +79,8 @@ def send_fax_telnyx(
     headers = {
         "Authorization": authorization,
     }
-
-    r = requests.post("https://api.telnyx.com/v2/faxes", headers=headers, data=data)
+    with patch_requests_only_ipv4():
+        r = requests.post("https://api.telnyx.com/v2/faxes", headers=headers, data=data)
     return r
 
 
