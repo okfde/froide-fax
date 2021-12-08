@@ -81,6 +81,7 @@ def send_fax_telnyx(
     }
     with patch_requests_only_ipv4():
         r = requests.post("https://api.telnyx.com/v2/faxes", headers=headers, data=data)
+    r.raise_for_status()
     return r
 
 
