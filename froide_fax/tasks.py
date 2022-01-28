@@ -4,7 +4,6 @@ from django.utils import translation
 from froide.celery import app as celery_app
 from froide.foirequest.models import FoiMessage
 
-from .fax import send_fax_message, send_fax_telnyx
 from .utils import create_fax_message
 
 
@@ -22,6 +21,8 @@ def send_message_as_fax_task(message_id):
 
 @celery_app.task
 def send_fax_message_task(message_id):
+    from .fax import send_fax_message
+
     translation.activate(settings.LANGUAGE_CODE)
 
     try:
@@ -46,6 +47,8 @@ def retry_fax_delivery(message_id):
 
 @celery_app.task
 def send_test_fax():
+    from .fax import send_fax_telnyx
+
     """
     send test faxes regularly, possibly with a distinct APP_ID, to gather receipts and ensure fax sending works as intended
     """
