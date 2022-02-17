@@ -1,16 +1,17 @@
-from datetime import timedelta, datetime
 import json
 import re
+from datetime import datetime, timedelta
+from typing import List
 
-from django.core.signing import Signer, BadSignature
-from django.urls import reverse
 from django.conf import settings
-from django.utils import timezone
 from django.core.serializers.json import DjangoJSONEncoder
+from django.core.signing import BadSignature, Signer
+from django.urls import reverse
+from django.utils import timezone
 
 import phonenumbers
 
-from froide.foirequest.models import FoiMessage, DeliveryStatus
+from froide.foirequest.models import DeliveryStatus, FoiMessage, FoiRequest
 from froide.foirequest.models.message import MessageKind
 
 from .models import Signature
@@ -101,8 +102,11 @@ def unsign_obj_id(signature, salt=None):
 
 
 def message_can_be_faxed(
-    message, ignore_time=False, ignore_signature=False, ignore_law=False
-):
+    message: FoiMessage,
+    ignore_time: bool = False,
+    ignore_signature: bool = False,
+    ignore_law: bool = False,
+) -> bool:
     if message is None:
         return False
     if not message.is_email:
@@ -110,8 +114,8 @@ def message_can_be_faxed(
     if message.is_response:
         return False
 
-    request = message.request
-    if not request.law or (not ignore_law and not request.law.requires_signature):
+    foirequest = message.request
+    if not foirequest.law or (not ignore_law and not foirequest.law.requires_signature):
         return False
 
     if not message.recipient_public_body:
@@ -121,7 +125,7 @@ def message_can_be_faxed(
     if fax_number is None:
         return False
 
-    sig = get_signature(request.user)
+    sig = get_signature(foirequest.user)
     if not ignore_signature and not sig:
         return False
 
@@ -132,7 +136,7 @@ def message_can_be_faxed(
     already_faxed = set(
         [
             m.original_id
-            for m in request.messages
+            for m in foirequest.messages
             if not m.is_response and m.kind == MessageKind.FAX
         ]
     )
@@ -142,11 +146,13 @@ def message_can_be_faxed(
     return True
 
 
-def get_faxable_messages_from_foirequest(foirequest, **kwargs):
+def get_faxable_messages_from_foirequest(
+    foirequest: FoiRequest, **kwargs
+) -> List[FoiMessage]:
     return [m for m in foirequest.messages if message_can_be_faxed(m, **kwargs)]
 
 
-def send_messages_of_request(foirequest):
+def send_messages_of_request(foirequest: FoiRequest) -> None:
     if not foirequest.law.requires_signature:
         return
 
@@ -155,7 +161,9 @@ def send_messages_of_request(foirequest):
         create_fax_message(message)
 
 
-def create_fax_message(message, ignore_time=False, ignore_law=False):
+def create_fax_message(
+    message: FoiMessage, ignore_time: bool = False, ignore_law: bool = False
+) -> FoiMessage:
     from .tasks import send_fax_message_task
 
     if not message_can_be_faxed(
@@ -183,7 +191,7 @@ def create_fax_message(message, ignore_time=False, ignore_law=False):
     return fax_message
 
 
-def message_can_get_fax_report(message):
+def message_can_get_fax_report(message: FoiMessage) -> bool:
     if message.kind != MessageKind.FAX:
         return False
 
