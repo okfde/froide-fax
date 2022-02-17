@@ -1,39 +1,38 @@
-import json
 import datetime
+import json
 
-from django.shortcuts import get_object_or_404, redirect
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
+from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import FormView
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib import messages
-from django.conf import settings
 from django.views.decorators.http import require_POST
+from django.views.generic import FormView
 
-from froide.foirequest.models import FoiMessage, FoiAttachment, DeliveryStatus
-from froide.foirequest.auth import can_write_foirequest
-from froide.problem.models import ProblemReport
-from froide.helper.utils import get_redirect_url
-
-from nacl.encoding import Base64Encoder
-from nacl.signing import VerifyKey
-from nacl.exceptions import BadSignatureError
 import pytz
 import requests
+from nacl.encoding import Base64Encoder
+from nacl.exceptions import BadSignatureError
+from nacl.signing import VerifyKey
+
+from froide.foirequest.auth import can_write_foirequest
+from froide.foirequest.models import DeliveryStatus, FoiAttachment, FoiMessage
+from froide.helper.utils import get_redirect_url
+from froide.problem.models import ProblemReport
 
 from .forms import SignatureForm
-from .utils import (
-    unsign_attachment_id,
-    unsign_message_id,
-    message_can_be_faxed,
-    create_fax_message,
-    message_can_get_fax_report,
-    create_fax_log,
-)
 from .pdf_generator import FaxReportPDFGenerator
 from .tasks import retry_fax_delivery
+from .utils import (
+    create_fax_log,
+    create_fax_message,
+    message_can_be_faxed,
+    message_can_get_fax_report,
+    unsign_attachment_id,
+)
 
 
 def fax_media_url(request, signed):
@@ -58,169 +57,116 @@ def fax_media_url(request, signed):
 @csrf_exempt
 @require_POST
 def fax_status_callback(request, signed=None):
+    # get relevant signature data
+    event_timestamp = request.headers.get("Telnyx-Timestamp")
+    event_signature = request.headers.get("Telnyx-Signature-Ed25519")
+    public_key = settings.TELNYX_PUBLIC_KEY
 
-    # old twilio callback
-    if signed is not None:
-        message_id = unsign_message_id(signed)
-        if message_id is None:
-            return HttpResponse(status=403)
+    # prepare signature data for nacl
+    verify_key = VerifyKey(public_key, encoder=Base64Encoder)
+    message = f"{event_timestamp}|".encode("UTF-8") + request.body
+    signature = Base64Encoder.decode(event_signature)
 
-        message = get_object_or_404(FoiMessage, pk=message_id)
+    # verify signature
+    try:
+        verify_key.verify(message, signature=signature)
+    except BadSignatureError:
+        return HttpResponseForbidden("invalid signature", content_type="text/plain")
 
-        fax_status = request.POST.get("FaxStatus")
+    payload_json = json.loads(request.body)
 
-        # See https://www.twilio.com/docs/fax/api/faxes#fax-status-values
-        if fax_status in ("queued", "processing", "sending"):
-            status = DeliveryStatus.Delivery.STATUS_SENDING
-        elif fax_status in ("delivered", "received"):
-            status = DeliveryStatus.Delivery.STATUS_RECEIVED
-        elif fax_status in ("no-answer", "busy"):
-            status = DeliveryStatus.Delivery.STATUS_DEFERRED
-        elif fax_status in ("failed", "canceled"):
-            status = DeliveryStatus.Delivery.STATUS_FAILED
+    # get message object
+    fax_id = None
+    try:
+        fax_id = payload_json.get("data").get("payload").get("fax_id")
+    except AttributeError as e:
+        # this key should always exist. we should never end up here
+        raise ValueError(
+            f"This is not a valid API response body: {request.body}"
+        ) from e
 
-        current_log = "%s\n" % timezone.now().isoformat()
-        current_log += "\n".join(
-            [
-                "%s: %s" % (k, v)
-                for k, v in request.POST.items()
-                if k not in ("AccountSid", "MediaUrl", "OriginalMediaUrl")
-            ]
-        )
+    if not fax_id:
+        raise ValueError(f"This is not a valid API response body: {request.body}")
 
-        ds, created = DeliveryStatus.objects.update_or_create(
-            message=message,
-            defaults=dict(
-                status=status,
-                last_update=timezone.now(),
-            ),
-        )
-        ds.log += "\n\n%s" % current_log.strip()
-        ds.log = ds.log.strip()
-        ds.save()
+    fax_message = get_object_or_404(FoiMessage, email_message_id=fax_id)
 
-        failed = status == DeliveryStatus.Delivery.STATUS_FAILED
+    # find status
+    try:
+        status = payload_json.get("data").get("payload").get("status")
+    except AttributeError as e:
+        # we should never end up here either
+        raise ValueError(
+            f"This is not a valid API response body: {request.body}"
+        ) from e
 
-        if status == DeliveryStatus.Delivery.STATUS_RECEIVED:
-            message.timestamp = ds.last_update
-            message.save()
-        elif status == DeliveryStatus.Delivery.STATUS_DEFERRED:
-            if ds.retry_count > 4:
-                failed = True
-            else:
-                # Retry fax delivery in 15 minutes
-                retry_fax_delivery.apply_async((message.pk,), {}, countdown=15 * 60)
-
-        if failed:
-            ProblemReport.objects.report(
-                message=message,
-                kind="bounce_publicbody",
-                description=ds.log,
-                auto_submitted=True,
-            )
-        return HttpResponse(status=204)
-
-    # telnyx callback
+    if status == "failed":
+        status = DeliveryStatus.Delivery.STATUS_FAILED
+    elif status == "queued":
+        status = DeliveryStatus.Delivery.STATUS_SENDING
+    elif status == "media.processed":
+        status = DeliveryStatus.Delivery.STATUS_SENDING
+    elif status.startswith("sending"):
+        status = DeliveryStatus.Delivery.STATUS_SENDING
+    elif status == "delivered":
+        status = DeliveryStatus.Delivery.STATUS_SENT
     else:
-        # get relevant signature data
-        event_timestamp = request.headers.get("Telnyx-Timestamp")
-        event_signature = request.headers.get("Telnyx-Signature-Ed25519")
-        public_key = settings.TELNYX_PUBLIC_KEY
+        # again: we should not end up here. according to telnyx-docu those are all possible stati
+        raise ValueError(f"This is not a valid status response: {status}")
 
-        # prepare signature data for nacl
-        verify_key = VerifyKey(public_key, encoder=Base64Encoder)
-        message = f"{event_timestamp}|".encode("UTF-8") + request.body
-        signature = Base64Encoder.decode(event_signature)
+    # only try and update if the timestamp in request is more recent than the one in the database
+    dt = datetime.datetime.fromtimestamp(int(event_timestamp), pytz.timezone("UTC"))
+    if fax_message.deliverystatus.last_update > dt:
+        return HttpResponse(status=409)
 
-        # verify signature
-        try:
-            verify_key.verify(message, signature=signature)
-        except BadSignatureError:
-            return HttpResponseForbidden("invalid signature", content_type="text/plain")
+    ds, _created = DeliveryStatus.objects.update_or_create(
+        message=fax_message,
+        defaults=dict(
+            status=status,
+            last_update=timezone.now(),
+        ),
+    )
+    data = payload_json.get("data")
 
-        payload_json = json.loads(request.body)
+    # Create machine-readable log
+    fax_log_data = {
+        "from_": data["payload"]["from"],
+        "to": data["payload"]["to"],
+        "sid": data["payload"]["fax_id"],
+        "status": data["payload"]["status"],
+        "num_pages": data["payload"].get("page_count", 0),
+        "duration": data["payload"].get("call_duration_secs", 0),
+        "failure_reason": data["payload"].get("failure_reason"),
+        "date_created": data["occurred_at"],
+    }
+    ds.log = create_fax_log(ds.log, fax_log_data)
+    ds.save()
 
-        # get message object
-        fax_id = None
-        try:
-            fax_id = payload_json.get("data").get("payload").get("fax_id")
-        except AttributeError as e:
-            # this key should always exist. we should never end up here
-            raise ValueError(
-                f"This is not a valid API response body: {request.body}"
-            ) from e
+    if status == DeliveryStatus.Delivery.STATUS_SENT:
+        fax_message.timestamp = ds.last_update
+        fax_message.save()
 
-        if not fax_id:
-            raise ValueError(f"This is not a valid API response body: {request.body}")
-
-        fax_message = get_object_or_404(FoiMessage, email_message_id=fax_id)
-
-        # find status
-        try:
-            status = payload_json.get("data").get("payload").get("status")
-        except AttributeError as e:
-            # we should never end up here either
-            raise ValueError(
-                f"This is not a valid API response body: {request.body}"
-            ) from e
-
-        if status == "failed":
-            status = DeliveryStatus.Delivery.STATUS_FAILED
-        elif status == "queued":
-            status = DeliveryStatus.Delivery.STATUS_UNKNOWN
-        elif status == "media.processed":
-            status = DeliveryStatus.Delivery.STATUS_UNKNOWN
-        elif status.startswith("sending"):
-            status = DeliveryStatus.Delivery.STATUS_SENDING
-        elif status == "delivered":
-            status = DeliveryStatus.Delivery.STATUS_SENT
+    failed = False
+    if status == DeliveryStatus.Delivery.STATUS_FAILED:
+        if ds.retry_count >= 3:
+            failed = True
         else:
-            # again: we should not end up here. according to telnyx-docu those are all possible stati
-            raise ValueError(f"This is not a valid status response: {status}")
-
-        # only try and update if the timestamp in request is more recent than the one in the database
-        dt = datetime.datetime.fromtimestamp(int(event_timestamp), pytz.timezone("UTC"))
-        if fax_message.deliverystatus.last_update > dt:
-            return HttpResponse(status=409)
-
-        ds, created = DeliveryStatus.objects.update_or_create(
-            message=fax_message,
-            defaults=dict(
-                status=status,
-                last_update=timezone.now(),
-            ),
-        )
-        data = payload_json.get("data")
-
-        # Create machine-readable log
-        fax_log_data = {
-            "from_": data["payload"]["from"],
-            "to": data["payload"]["to"],
-            "sid": data["payload"]["fax_id"],
-            "status": data["payload"]["status"],
-            "num_pages": data["payload"].get("page_count", 0),
-            "duration": data["payload"].get("call_duration_secs", 0),
-            "failure_reason": data["payload"].get("failure_reason"),
-            "date_created": data["occurred_at"],
-        }
-        ds.log = create_fax_log(ds.log, fax_log_data)
-        ds.save()
-
-        if status == DeliveryStatus.Delivery.STATUS_RECEIVED:
-            fax_message.timestamp = ds.last_update
-            fax_message.save()
-
-        failed = status == DeliveryStatus.Delivery.STATUS_FAILED
-
-        if failed:
-            ProblemReport.objects.report(
-                message=fax_message,
-                kind="bounce_publicbody",
-                description=ds.log,
-                auto_submitted=True,
+            # Retry fax delivery in 15 minutes
+            retry_fax_delivery.apply_async(
+                (message.pk,),
+                {},
+                # resend in intervals of 0.25, 1, 2 and 4 hours
+                countdown=15 * 60 * 4**ds.retry_count,
             )
 
-        return HttpResponse(status=200)
+    if failed:
+        ProblemReport.objects.report(
+            message=fax_message,
+            kind=ProblemReport.PROBLEM.BOUNCE_PUBLICBODY,
+            description=ds.log,
+            auto_submitted=True,
+        )
+
+    return HttpResponse(status=200)
 
 
 class UpdateSignatureView(LoginRequiredMixin, FormView):
