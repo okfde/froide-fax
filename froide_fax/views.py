@@ -144,6 +144,9 @@ def fax_status_callback(request, signed=None):
     if status == DeliveryStatus.Delivery.STATUS_SENT:
         fax_message.timestamp = ds.last_update
         fax_message.save()
+        ProblemReport.objects.find_and_resolve(
+            message=message, kind=ProblemReport.PROBLEM.BOUNCE_PUBLICBODY
+        )
 
     failed = False
     if status == DeliveryStatus.Delivery.STATUS_FAILED:
