@@ -111,7 +111,7 @@ def message_can_be_faxed(
         return False
 
     request = message.request
-    if not ignore_law and not request.law.requires_signature:
+    if not request.law or (not ignore_law and not request.law.requires_signature):
         return False
 
     if not message.recipient_public_body:
