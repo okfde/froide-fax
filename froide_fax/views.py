@@ -4,7 +4,12 @@ import json
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+    HttpResponseForbidden,
+    StreamingHttpResponse,
+)
 from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -56,7 +61,7 @@ def fax_media_url(request, signed):
 
 @csrf_exempt
 @require_POST
-def fax_status_callback(request, signed=None):
+def fax_status_callback(request: HttpRequest):
     # get relevant signature data
     event_timestamp = request.headers.get("Telnyx-Timestamp")
     event_signature = request.headers.get("Telnyx-Signature-Ed25519")
@@ -64,12 +69,12 @@ def fax_status_callback(request, signed=None):
 
     # prepare signature data for nacl
     verify_key = VerifyKey(public_key, encoder=Base64Encoder)
-    message = f"{event_timestamp}|".encode("UTF-8") + request.body
+    callback_bytes = f"{event_timestamp}|".encode("UTF-8") + request.body
     signature = Base64Encoder.decode(event_signature)
 
     # verify signature
     try:
-        verify_key.verify(message, signature=signature)
+        verify_key.verify(callback_bytes, signature=signature)
     except BadSignatureError:
         return HttpResponseForbidden("invalid signature", content_type="text/plain")
 
@@ -88,7 +93,7 @@ def fax_status_callback(request, signed=None):
     if not fax_id:
         raise ValueError(f"This is not a valid API response body: {request.body}")
 
-    fax_message = get_object_or_404(FoiMessage, email_message_id=fax_id)
+    fax_message: FoiMessage = get_object_or_404(FoiMessage, email_message_id=fax_id)
 
     # find status
     try:
@@ -145,7 +150,7 @@ def fax_status_callback(request, signed=None):
         fax_message.timestamp = ds.last_update
         fax_message.save()
         ProblemReport.objects.find_and_resolve(
-            message=message, kind=ProblemReport.PROBLEM.BOUNCE_PUBLICBODY
+            message=fax_message, kind=ProblemReport.PROBLEM.BOUNCE_PUBLICBODY
         )
 
     failed = False
@@ -155,7 +160,7 @@ def fax_status_callback(request, signed=None):
         else:
             # Retry fax delivery in 15 minutes
             retry_fax_delivery.apply_async(
-                (message.pk,),
+                (fax_message.pk,),
                 {},
                 # resend in intervals of 0.25, 1, 2 and 4 hours
                 countdown=15 * 60 * 4**ds.retry_count,
