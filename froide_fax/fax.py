@@ -1,19 +1,22 @@
 import contextlib
+import logging
 import socket
 
 from django.conf import settings
-from django.utils import timezone
 from django.core.files.base import ContentFile
-
-from froide.foirequest.models import FoiMessage, FoiAttachment, DeliveryStatus
-from froide.foirequest.message_handlers import MessageHandler
-from froide.foirequest.models.message import MessageKind
-
-from .pdf_generator import FaxMessagePDFGenerator
-from .utils import get_media_url, ensure_fax_number
+from django.utils import timezone
 
 import requests
 import requests.packages.urllib3.util.connection as urllib3_cn
+
+from froide.foirequest.message_handlers import MessageHandler
+from froide.foirequest.models import DeliveryStatus, FoiAttachment, FoiMessage
+from froide.foirequest.models.message import MessageKind
+
+from .pdf_generator import FaxMessagePDFGenerator
+from .utils import ensure_fax_number, get_media_url
+
+logger = logging.getLogger(__name__)
 
 
 @contextlib.contextmanager
@@ -80,9 +83,15 @@ def send_fax_telnyx(
         "Authorization": authorization,
     }
     with patch_requests_only_ipv4():
-        r = requests.post("https://api.telnyx.com/v2/faxes", headers=headers, data=data)
-    r.raise_for_status()
-    return r
+        response = requests.post(
+            "https://api.telnyx.com/v2/faxes", headers=headers, data=data
+        )
+    try:
+        response.raise_for_status()
+    except Exception:
+        error_data = response.json()
+        logger.error("Fax sending failed %s", error_data)
+    return response
 
 
 def send_fax(fax_number, media_url):
