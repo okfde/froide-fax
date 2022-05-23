@@ -91,6 +91,7 @@ def send_fax_telnyx(
     except Exception:
         error_data = response.json()
         logger.error("Fax sending failed %s", error_data)
+        raise
     return response
 
 
