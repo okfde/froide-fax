@@ -17,6 +17,3 @@ This app works with froide and provides the following:
   - Webhook status callback of fax API provider
   - Authenticated view for PDF that should be faxed for API provider
 
-## TODO
-
-Twilio is shutting down their Fax API, we need to migrate.
