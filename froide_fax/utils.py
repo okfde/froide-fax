@@ -75,7 +75,7 @@ def get_status_callback_url(message):
 
 def sign_obj_id(obj_id, salt=None):
     signer = Signer(salt=salt)
-    value = signer.sign("%s@%s" % (obj_id, settings.TWILIO_ACCOUNT_SID))
+    value = signer.sign("%s@%s" % (obj_id, settings.TELNYX_APP_ID))
     return value
 
 
@@ -96,7 +96,7 @@ def unsign_obj_id(signature, salt=None):
     parts = original.split("@", 1)
     if len(parts) != 2:
         return None
-    if parts[1] != settings.TWILIO_ACCOUNT_SID:
+    if parts[1] != settings.TELNYX_APP_ID:
         return None
     return int(parts[0])
 
