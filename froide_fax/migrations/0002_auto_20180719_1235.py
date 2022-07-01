@@ -8,12 +8,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('froide_fax', '0001_initial'),
+        ("froide_fax", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='signature',
-            options={'verbose_name': 'Signature', 'verbose_name_plural': 'Signatures'},
+            name="signature",
+            options={"verbose_name": "Signature", "verbose_name_plural": "Signatures"},
         ),
     ]

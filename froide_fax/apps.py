@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 class FroideFaxConfig(AppConfig):
-    name = 'froide_fax'
+    name = "froide_fax"
     verbose_name = _("Froide Fax App")
 
     def ready(self):
@@ -52,15 +52,20 @@ def merge_user(sender, old_user=None, new_user=None, **kwargs):
 
 def export_user_data(user):
     from .models import Signature
+
     try:
         signature = Signature.objects.get(user=user)
     except Signature.DoesNotExist:
         return
 
-    yield ('signature.json', json.dumps({
-            'timestamp': signature.timestamp.isoformat(),
-        }).encode('utf-8')
+    yield (
+        "signature.json",
+        json.dumps(
+            {
+                "timestamp": signature.timestamp.isoformat(),
+            }
+        ).encode("utf-8"),
     )
     signature_bytes = signature.get_signature_bytes()
     if signature_bytes is not None:
-        yield ('signature.png', signature_bytes)
+        yield ("signature.png", signature_bytes)
