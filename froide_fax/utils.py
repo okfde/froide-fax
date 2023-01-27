@@ -1,6 +1,7 @@
 import json
 import re
 from datetime import datetime, timedelta
+from datetime import timezone as tz
 from typing import List
 
 from django.conf import settings
@@ -218,6 +219,8 @@ def parse_fax_log(deliverystatus):
         for key in date_fields:
             try:
                 data[key] = datetime.fromisoformat(data[key].replace("Z", ""))
+                # Make datetimes timezone aware and set to UTC (as stored in DB)
+                data[key] = data[key].replace(tzinfo=tz.utc)
             except (ValueError, KeyError):
                 data[key] = None
         return data
