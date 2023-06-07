@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-03-23 10:53+0000\n"
-"PO-Revision-Date: 2021-03-23 10:54+0000\n"
+"POT-Creation-Date: 2023-06-07 14:09+0200\n"
+"PO-Revision-Date: 2023-06-07 14:11+0200\n"
 "Last-Translator: Stefan Wehrmeyer <stefan.wehrmeyer@okfn.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -16,31 +16,29 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.3\n"
+"X-Generator: Poedit 3.3.1\n"
 
-#: apps.py:9
+#: apps.py
 msgid "Froide Fax App"
 msgstr "Froide Fax App"
 
-#: models.py:23
+#: models.py
 msgid "User"
 msgstr "Nutzer"
 
-#: models.py:35
+#: models.py
 msgid "Signature"
 msgstr "Unterschrift"
 
-#: models.py:36
+#: models.py
 msgid "Signatures"
 msgstr "Unterschriften"
 
-#: templates/froide_fax/_send_message_form.html:5
-#: templates/froide_fax/_send_message_form.html:13
-#: templates/froide_fax/_send_message_form.html:31
+#: templates/froide_fax/_send_message_form.html
 msgid "Send as fax"
 msgstr "Als Fax versenden"
 
-#: templates/froide_fax/_send_message_form.html:25
+#: templates/froide_fax/_send_message_form.html
 #, python-format
 msgid ""
 "\n"
@@ -51,11 +49,19 @@ msgstr ""
 "              Fax an %(name)s senden mit der Faxnummer %(fax_number)s.\n"
 "            "
 
-#: templates/froide_fax/_signature_form.html:6
+#: templates/froide_fax/_send_message_form.html
+msgid "Preview fax PDF"
+msgstr "Vorschau des Fax-PDFs"
+
+#: templates/froide_fax/_show_report_link.html
+msgid "Get Fax report"
+msgstr "Fax-Sendebericht"
+
+#: templates/froide_fax/_signature_form.html
 msgid "Save your signature"
 msgstr "Speichern Sie Ihre Unterschrift"
 
-#: templates/froide_fax/_signature_form.html:13
+#: templates/froide_fax/_signature_form.html
 msgid ""
 "\n"
 "            Sometimes public authorities require a written letter with a "
@@ -71,7 +77,7 @@ msgstr ""
 "versenden, wenn Sie Ihre Unterschrift hier eintragen.\n"
 "          "
 
-#: templates/froide_fax/_signature_form.html:20
+#: templates/froide_fax/_signature_form.html
 msgid ""
 "\n"
 "            We will only place your signature under requests and messages "
@@ -83,7 +89,7 @@ msgstr ""
 "Nachrichten setzen, die wir in Ihrem Auftrag versenden.\n"
 "          "
 
-#: templates/froide_fax/_signature_form.html:25
+#: templates/froide_fax/_signature_form.html
 msgid ""
 "\n"
 "            Please write your signature in the box below by using your mouse "
@@ -96,56 +102,42 @@ msgstr ""
 "Mobilgeräten.\n"
 "          "
 
-#: templates/froide_fax/_signature_form.html:45
+#: templates/froide_fax/_signature_form.html
 msgid "Save signature"
 msgstr "Unterschrift speichern"
 
-#: templates/froide_fax/_signature_form.html:52
+#: templates/froide_fax/_signature_form.html
 msgid "Delete signature"
 msgstr "Unterschrift löschen"
 
-#: templates/froide_fax/message_letter.html:6
+#: templates/froide_fax/message_letter.html
 msgid "Via"
 msgstr "Via"
 
-#: templates/froide_fax/message_letter.html:7
+#: templates/froide_fax/message_letter.html
 msgid "Fax and email"
 msgstr "Fax und E-Mail"
 
-#: templates/froide_fax/message_letter.html:11
+#: templates/froide_fax/message_letter.html
 msgid "Kind Regards,"
 msgstr "Mit freundlichen Grüßen"
 
-#: templates/froide_fax/widgets/signature.html:15
+#: templates/froide_fax/widgets/signature.html
 msgid "Write your signature in the box above."
 msgstr "Bitte schreiben Sie Ihre Unterschrift in den obigen Kasten."
 
-#: templates/froide_fax/widgets/signature.html:20
+#: templates/froide_fax/widgets/signature.html
 msgid "Undo"
 msgstr "Rückgängig"
 
-#: templates/froide_fax/widgets/signature.html:23
+#: templates/froide_fax/widgets/signature.html
 msgid "Clear"
 msgstr "Leeren"
 
-#: views.py:108
+#: views.py
 msgid "Signature has been saved."
 msgstr "Unterschrift wurde gespeichert."
 
-#: views.py:112
+#: views.py
 msgid "Signature has been removed."
 msgstr "Unterschrift wurde gelöscht."
-
-#~ msgid "Fax Delivery failed after 6 attempts"
-#~ msgstr "Fax-Zustellung nach 6 Versuchen fehlgeschlagen"
-
-#~ msgid ""
-#~ "This message has been send as an email. If the authority indicated that "
-#~ "it is not replying to emails, you can send this message as a fax."
-#~ msgstr ""
-#~ "Diese Nachricht wurde als E-Mail versendet. Falls die Behörde angibt, auf "
-#~ "der Schriftform zu bestehen, können Sie diese Nachricht auch als Fax "
-#~ "versenden."
-
-#~ msgid "Send this message as a fax"
-#~ msgstr "Diese Nachricht als Fax versenden"
