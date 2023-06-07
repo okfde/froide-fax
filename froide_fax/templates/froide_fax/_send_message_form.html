@@ -1,6 +1,6 @@
 {% load i18n %}
 
-<button type="button" class="btn btn-sm mb-1 mx-sm-1 btn-secondary" data-bs-toggle="modal" data-bs-target="#sendfax-{{ message.pk }}">
+<button type="button" class="btn btn-sm mb-1 mx-sm-1 btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sendfax-{{ message.pk }}">
   <i class="fa fa-fax"></i>
   {% translate "Send as fax" %}
 </button>
@@ -17,13 +17,18 @@
       </div>
       <div class="modal-body">
 
-        <form class="d-inline" action="{% url 'froide_fax-send_as_fax' message_id=message.id %}" method="post">
+        <form action="{% url 'froide_fax-send_as_fax' message_id=message.id %}" method="post">
           {% csrf_token %}
 
           <p>
             {% blocktranslate with name=message.recipient_public_body.name fax_number=message.recipient_public_body.fax %}
               Send fax to {{ name }} with fax number {{ fax_number }}.
             {% endblocktranslate %}
+          </p>
+          <p>
+            <a href="{% url 'froide_fax-preview_fax' message_id=message.id %}" class="btn btn-outline-secondary" target="_blank">
+              {% translate "Preview fax PDF" %}
+            </a>
           </p>
           <button type="submit" class="btn btn-sm btn-secondary">
             <i class="fa fa-fax"></i>

@@ -31,9 +31,12 @@ def patch_requests_only_ipv4():
     urllib3_cn.allowed_gai_family = original_func
 
 
-def create_fax_attachment(fax_message):
-    pdf_generator = FaxMessagePDFGenerator(fax_message.original)
+def convert_to_fax_bytes(original_message: FoiMessage) -> bytes:
+    pdf_generator = FaxMessagePDFGenerator(original_message)
+    return pdf_generator.get_pdf_bytes()
 
+
+def create_fax_attachment(fax_message):
     att = FoiAttachment(
         belongs_to=fax_message,
         name="fax.pdf",
@@ -42,8 +45,8 @@ def create_fax_attachment(fax_message):
         approved=False,
         can_approve=False,
     )
-
-    pdf_file = ContentFile(pdf_generator.get_pdf_bytes())
+    pdf_bytes = convert_to_fax_bytes(fax_message.original)
+    pdf_file = ContentFile(pdf_bytes)
     att.size = pdf_file.size
     att.file.save(att.name, pdf_file)
     att.save()

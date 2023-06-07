@@ -28,6 +28,8 @@ from froide.foirequest.models import DeliveryStatus, FoiAttachment, FoiMessage
 from froide.helper.utils import get_redirect_url
 from froide.problem.models import ProblemReport
 
+from froide_fax.fax import convert_to_fax_bytes
+
 from .forms import SignatureForm
 from .pdf_generator import FaxReportPDFGenerator
 from .tasks import retry_fax_delivery
@@ -115,10 +117,12 @@ def fax_status_callback(request: HttpRequest):
     elif status == "delivered":
         status = DeliveryStatus.Delivery.STATUS_SENT
     else:
-        # again: we should not end up here. according to telnyx-docu those are all possible stati
+        # again: we should not end up here. according to telnyx-docu those
+        # are all possible stati
         raise ValueError(f"This is not a valid status response: {status}")
 
-    # only try and update if the timestamp in request is more recent than the one in the database
+    # only try and update if the timestamp in request is more recent than
+    # the one in the database
     dt = datetime.datetime.fromtimestamp(int(event_timestamp), pytz.timezone("UTC"))
     if fax_message.deliverystatus.last_update > dt:
         return HttpResponse(status=409)
@@ -216,6 +220,18 @@ def send_as_fax(request, message_id):
     fax_message = create_fax_message(message, ignore_time=True, ignore_law=ignore_law)
 
     return redirect(fax_message)
+
+
+def preview_fax(request, message_id):
+    message = get_object_or_404(FoiMessage, id=message_id)
+    if not can_write_foirequest(message.request, request):
+        return HttpResponse(status=403)
+
+    ignore_law = request.user.is_staff
+    if not message_can_be_faxed(message, ignore_time=True, ignore_law=ignore_law):
+        return HttpResponse(status=400)
+
+    return HttpResponse(convert_to_fax_bytes(message), content_type="application/pdf")
 
 
 def pdf_report(request, message_id):

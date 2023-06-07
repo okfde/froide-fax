@@ -5,6 +5,7 @@ from .views import (
     fax_media_url,
     fax_status_callback,
     pdf_report,
+    preview_fax,
     send_as_fax,
 )
 
@@ -13,6 +14,7 @@ urlpatterns = [
         "signature/", UpdateSignatureView.as_view(), name="froide_fax-update_signature"
     ),
     path("send-fax/<int:message_id>/", send_as_fax, name="froide_fax-send_as_fax"),
+    path("preview/<int:message_id>/", preview_fax, name="froide_fax-preview_fax"),
     path("report/<int:message_id>/", pdf_report, name="froide_fax-report"),
     path("fax-callback/", fax_status_callback, name="froide_fax-status_callback"),
     re_path(
