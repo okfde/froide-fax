@@ -1,0 +1,8 @@
+{% load i18n %}
+
+<form action="{% url 'froide_fax-resend_fax' message_id=message.id %}" method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-sm btn-light mb-1 mx-sm-1" href="{% url 'froide_fax-report' message_id=message.id %}">
+        {% translate "Resend Message" %}
+    </button>
+</form>
