@@ -5,6 +5,7 @@ from ..utils import (
     get_faxable_messages_from_foirequest,
     get_signature,
     message_can_be_faxed,
+    message_can_be_resend,
     message_can_get_fax_report,
 )
 
@@ -41,6 +42,11 @@ def can_fax_message(message, request):
     return message_can_be_faxed(
         message, ignore_time=True, ignore_law=request.user.is_staff
     )
+
+
+@register.filter
+def can_resend_fax(message):
+    return message_can_be_resend(message)
 
 
 @register.filter

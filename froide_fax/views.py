@@ -37,6 +37,7 @@ from .utils import (
     create_fax_log,
     create_fax_message,
     message_can_be_faxed,
+    message_can_be_resend,
     message_can_get_fax_report,
     unsign_attachment_id,
 )
@@ -220,6 +221,21 @@ def send_as_fax(request, message_id):
     fax_message = create_fax_message(message, ignore_time=True, ignore_law=ignore_law)
 
     return redirect(fax_message)
+
+
+@require_POST
+def resend_fax(request, message_id):
+    message = get_object_or_404(FoiMessage, id=message_id)
+
+    if not can_write_foirequest(message.request, request):
+        return HttpResponse(status=403)
+
+    if not message_can_be_resend(message):
+        return HttpResponse(status=400)
+
+    retry_fax_delivery.delay(message.pk)
+
+    return redirect(message)
 
 
 def preview_fax(request, message_id):

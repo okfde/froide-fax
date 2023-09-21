@@ -275,3 +275,10 @@ def parse_twilio_fax_log(log):
         "bit_rate",
     )
     return {k: v for k, v in fax_data.items() if k in fields}
+
+
+def message_can_be_resend(message):
+    return (
+        message.kind == MessageKind.FAX
+        and message.deliverystatus.status == DeliveryStatus.Delivery.STATUS_FAILED
+    )
