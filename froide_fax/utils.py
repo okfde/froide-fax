@@ -278,7 +278,12 @@ def parse_twilio_fax_log(log):
 
 
 def message_can_be_resend(message):
-    return (
-        message.kind == MessageKind.FAX
-        and message.deliverystatus.status == DeliveryStatus.Delivery.STATUS_FAILED
-    )
+    if message.kind != MessageKind.FAX:
+        return False
+
+    try:
+        deliverystatus = message.deliverystatus
+    except DeliveryStatus.DoesNotExist:
+        return False
+
+    return deliverystatus.status == DeliveryStatus.Delivery.STATUS_FAILED
