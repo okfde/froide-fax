@@ -16,7 +16,7 @@ classifiers = [
   "Topic :: Utilities",
 ]
 dynamic = ["version"]
-dependencies = ["froide"]
+dependencies = ["froide", "weasyprint", "phonenumbers", "pynacl", "requests"]
 
 [build-system]
 requires = ["setuptools"]
