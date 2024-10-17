@@ -16,6 +16,19 @@ def signature_path(instance=None, filename=None):
     return os.path.join(*path)
 
 
+FAX_PERMISSION_PART = "can_always_fax"
+FAX_PERMISSION = "froide_fax." + FAX_PERMISSION_PART
+
+
+class FaxPermission(models.Model):
+    """This model has not database table, it is used to define permissions for fax sending"""
+
+    class Meta:
+        managed = False
+        default_permissions = ()
+        permissions = ((FAX_PERMISSION_PART, _("Can always send fax messages")),)
+
+
 class Signature(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_("User")

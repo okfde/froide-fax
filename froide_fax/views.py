@@ -31,6 +31,7 @@ from froide.problem.models import ProblemReport
 from froide_fax.fax import convert_to_fax_bytes
 
 from .forms import SignatureForm
+from .models import FAX_PERMISSION
 from .pdf_generator import FaxReportPDFGenerator
 from .tasks import retry_fax_delivery
 from .utils import (
@@ -214,7 +215,7 @@ def send_as_fax(request, message_id):
     if not can_write_foirequest(message.request, request):
         return HttpResponse(status=403)
 
-    ignore_law = request.user.is_staff
+    ignore_law = request.user.has_perm(FAX_PERMISSION)
     if not message_can_be_faxed(message, ignore_time=True, ignore_law=ignore_law):
         return HttpResponse(status=400)
 
@@ -243,7 +244,7 @@ def preview_fax(request, message_id):
     if not can_write_foirequest(message.request, request):
         return HttpResponse(status=403)
 
-    ignore_law = request.user.is_staff
+    ignore_law = request.user.has_perm(FAX_PERMISSION)
     if not message_can_be_faxed(message, ignore_time=True, ignore_law=ignore_law):
         return HttpResponse(status=400)
 

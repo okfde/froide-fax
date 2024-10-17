@@ -8,6 +8,7 @@ from ..utils import (
     message_can_be_resend,
     message_can_get_fax_report,
 )
+from ..models import FAX_PERMISSION
 
 register = template.Library()
 
@@ -40,7 +41,7 @@ def foirequest_needs_signature(foirequest):
 @register.filter
 def can_fax_message(message, request):
     return message_can_be_faxed(
-        message, ignore_time=True, ignore_law=request.user.is_staff
+        message, ignore_time=True, ignore_law=request.user.has_perm(FAX_PERMISSION)
     )
 
 
