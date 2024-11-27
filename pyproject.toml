@@ -16,7 +16,7 @@ classifiers = [
   "Topic :: Utilities",
 ]
 version = "0.0.1"
-dependencies = ["weasyprint", "phonenumbers", "pynacl", "requests"]
+dependencies = ["weasyprint", "phonenumbers", "pynacl", "requests", "pytz"]
 
 [build-system]
 requires = ["setuptools"]
