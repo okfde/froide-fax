@@ -19,6 +19,14 @@ from .utils import ensure_fax_number, get_media_url
 logger = logging.getLogger(__name__)
 
 
+class FaxFailedException(Exception):
+    msg: str
+
+    def __init__(self, msg, *args, **kwargs):
+        self.msg = msg
+        super().__init__(*args, **kwargs)
+
+
 @contextlib.contextmanager
 def patch_requests_only_ipv4():
     """
@@ -94,7 +102,7 @@ def send_fax_telnyx(
     except Exception:
         error_data = response.json()
         logger.error("Fax sending failed %s", error_data)
-        raise
+        raise FaxFailedException(response.text)
     return response
 
 
@@ -127,8 +135,13 @@ class FaxMessageHandler(MessageHandler):
                 last_update=timezone.now(),
             ),
         )
-
-        fax_response = send_fax(fax_number, media_url)
+        try:
+            fax_response = send_fax(fax_number, media_url)
+        except FaxFailedException as e:
+            ds.status = DeliveryStatus.Delivery.STATUS_FAILED
+            ds.log = e.msg
+            ds.save()
+            return
 
         fax_data = fax_response.json().get("data")
         if fax_data:
