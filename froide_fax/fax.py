@@ -1,13 +1,10 @@
-import contextlib
 import logging
-import socket
 
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
 import requests
-import requests.packages.urllib3.util.connection as urllib3_cn
 
 from froide.foirequest.message_handlers import MessageHandler
 from froide.foirequest.models import DeliveryStatus, FoiAttachment, FoiMessage
@@ -25,18 +22,6 @@ class FaxFailedException(Exception):
     def __init__(self, msg, *args, **kwargs):
         self.msg = msg
         super().__init__(*args, **kwargs)
-
-
-@contextlib.contextmanager
-def patch_requests_only_ipv4():
-    """
-    Patch requests to force use of IPv4
-    """
-
-    original_func = urllib3_cn.allowed_gai_family
-    urllib3_cn.allowed_gai_family = lambda: socket.AF_INET
-    yield
-    urllib3_cn.allowed_gai_family = original_func
 
 
 def convert_to_fax_bytes(original_message: FoiMessage) -> bytes:
@@ -93,10 +78,11 @@ def send_fax_telnyx(
     headers = {
         "Authorization": authorization,
     }
-    with patch_requests_only_ipv4():
-        response = requests.post(
-            "https://api.telnyx.com/v2/faxes", headers=headers, data=data
-        )
+
+    response = requests.post(
+        "https://api.telnyx.com/v2/faxes", headers=headers, data=data
+    )
+
     try:
         response.raise_for_status()
     except Exception:
