@@ -5,7 +5,6 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-
 from froide.helper.storage import HashedFilenameStorage
 
 DATA_URL_PNG = "data:image/png;base64,"
@@ -46,8 +45,9 @@ class Signature(models.Model):
         return str(self.user)
 
     def remove_signature_file(self):
-        if self.signature and os.path.exists(self.signature.path):
-            os.remove(self.signature.path)
+        if not self.signature:
+            return
+        self.signature.delete()
 
     def get_signature_dataurl(self):
         if not self.signature:
