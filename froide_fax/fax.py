@@ -1,17 +1,19 @@
 import logging
 
+import requests
+from django import forms
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
-
-import requests
-
+from django.utils.translation import gettext_lazy as _
 from froide.foirequest.message_handlers import MessageHandler
 from froide.foirequest.models import DeliveryStatus, FoiAttachment, FoiMessage
 from froide.foirequest.models.message import MessageKind
+from froide.helper.widgets import BootstrapCheckboxInput
 
+from .forms import SignatureField, save_signature_for_user
 from .pdf_generator import FaxMessagePDFGenerator
-from .utils import ensure_fax_number, get_media_url
+from .utils import create_fax_message, ensure_fax_number, get_media_url, get_signature
 
 logger = logging.getLogger(__name__)
 
@@ -138,3 +140,48 @@ class FaxMessageHandler(MessageHandler):
         FoiMessage.objects.filter(pk=fax_message.pk).update(
             email_message_id=fax_id, sent=sent
         )
+
+    @classmethod
+    def initialize_send_message_form(cls, form):
+        if not ensure_fax_number(form.foirequest.public_body):
+            return
+        form.fields["send_fax"] = forms.BooleanField(
+            required=False,
+            label=_("Send message as fax"),
+            widget=BootstrapCheckboxInput,
+        )
+        additional_render_fields = [form["send_fax"]]
+        signature = get_signature(form.foirequest.user)
+        # Only if no signature is present, we show the field
+        if not signature:
+            form.fields["signature"] = SignatureField(required=False)
+            additional_render_fields.append(form["signature"])
+        form.additional_render_fields = additional_render_fields
+
+    @classmethod
+    def clean_send_message_form(cls, form, cleaned_data):
+        if not ensure_fax_number(form.foirequest.public_body):
+            return
+
+        if not cleaned_data["send_fax"]:
+            return cleaned_data
+
+        signature = get_signature(form.foirequest.user)
+        if not signature and not cleaned_data["signature"]:
+            form.add_error(
+                "signature",
+                _("You need to provide a signature to send a fax message."),
+            )
+        return cleaned_data
+
+    @classmethod
+    def save_send_message_form(cls, form, message, user):
+        if not ensure_fax_number(form.foirequest.public_body):
+            return
+
+        if message.request.user != user:
+            # Can't set signature for different user!
+            return
+        if form.cleaned_data["send_fax"]:
+            save_signature_for_user(user, form.cleaned_data["signature"])
+            create_fax_message(message)
