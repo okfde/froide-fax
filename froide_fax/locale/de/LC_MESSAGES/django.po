@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-06-07 14:09+0200\n"
-"PO-Revision-Date: 2023-06-07 14:11+0200\n"
+"POT-Creation-Date: 2026-03-16 16:20+0000\n"
+"PO-Revision-Date: 2026-03-16 16:22+0000\n"
 "Last-Translator: Stefan Wehrmeyer <stefan.wehrmeyer@okfn.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -16,11 +16,23 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.3.1\n"
+"X-Generator: Poedit 3.8\n"
 
 #: apps.py
 msgid "Froide Fax App"
 msgstr "Froide Fax App"
+
+#: fax.py
+msgid "Send message as fax"
+msgstr "Nachricht als Fax versenden"
+
+#: fax.py
+msgid "You need to provide a signature to send a fax message."
+msgstr "Sie müssen eine Unterschrift eintragen, um eine Fax-Nachricht versenden zu können."
+
+#: models.py
+msgid "Can always send fax messages"
+msgstr "Kann imm Fax-Nachrichten senden"
 
 #: models.py
 msgid "User"
@@ -33,6 +45,10 @@ msgstr "Unterschrift"
 #: models.py
 msgid "Signatures"
 msgstr "Unterschriften"
+
+#: templates/froide_fax/_resend_message_form.html
+msgid "Resend Message"
+msgstr "Nachricht erneut versenden"
 
 #: templates/froide_fax/_send_message_form.html
 msgid "Send as fax"
@@ -64,42 +80,33 @@ msgstr "Speichern Sie Ihre Unterschrift"
 #: templates/froide_fax/_signature_form.html
 msgid ""
 "\n"
-"            Sometimes public authorities require a written letter with a "
-"signature from you.\n"
-"            We can send a letter as a fax with your signature, if you "
-"provide it below.\n"
+"            Sometimes public authorities require a written letter with a signature from you.\n"
+"            We can send a letter as a fax with your signature, if you provide it below.\n"
 "          "
 msgstr ""
 "\n"
-"            Manche Behörden verlangen schriftliche Nachrichten mit "
-"Unterschrift von Ihnen.\n"
-"            Wir können Ihre Nachricht als Fax mit Ihrer Unterschrift "
-"versenden, wenn Sie Ihre Unterschrift hier eintragen.\n"
+"            Manche Behörden verlangen schriftliche Nachrichten mit Unterschrift von Ihnen.\n"
+"            Wir können Ihre Nachricht als Fax mit Ihrer Unterschrift versenden, wenn Sie Ihre Unterschrift hier eintragen.\n"
 "          "
 
 #: templates/froide_fax/_signature_form.html
 msgid ""
 "\n"
-"            We will only place your signature under requests and messages "
-"that you send.\n"
+"            We will only place your signature under requests and messages that you send.\n"
 "          "
 msgstr ""
 "\n"
-"            Wir werden Ihre Unterschrift ausschließlich unter Anfragen und "
-"Nachrichten setzen, die wir in Ihrem Auftrag versenden.\n"
+"            Wir werden Ihre Unterschrift ausschließlich unter Anfragen und Nachrichten setzen, die wir in Ihrem Auftrag versenden.\n"
 "          "
 
 #: templates/froide_fax/_signature_form.html
 msgid ""
 "\n"
-"            Please write your signature in the box below by using your mouse "
-"on Desktop or your finger on touch screens.\n"
+"            Please write your signature in the box below by using your mouse on Desktop or your finger on touch screens.\n"
 "          "
 msgstr ""
 "\n"
-"            Bitte schreiben Sie Ihre Unterschrift in den Kasten, entweder "
-"mit Ihrem gedrückten Mauszeiger auf Desktopgeräten oder mit Ihrem Finger auf "
-"Mobilgeräten.\n"
+"            Bitte schreiben Sie Ihre Unterschrift in den Kasten, entweder mit Ihrem gedrückten Mauszeiger auf Desktopgeräten oder mit Ihrem Finger auf Mobilgeräten.\n"
 "          "
 
 #: templates/froide_fax/_signature_form.html
