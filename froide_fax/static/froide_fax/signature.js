@@ -17,7 +17,13 @@
     var storedValue = formField.value
     var changed = false
   
-    var canvas = wrapper.querySelector("canvas");
+    var canvasWrapper = wrapper.querySelector(".signature-pad--body")
+    if (!canvasWrapper) {
+      console.error("Could not find canvas wrapper")
+      return
+    }
+    var canvas = document.createElement("canvas")
+    canvasWrapper.appendChild(canvas)
     
     var signaturePad = new SignaturePad(canvas, {
       backgroundColor: 'rgb(255, 255, 255)',
