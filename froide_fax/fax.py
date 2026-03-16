@@ -183,5 +183,6 @@ class FaxMessageHandler(MessageHandler):
             # Can't set signature for different user!
             return
         if form.cleaned_data["send_fax"]:
-            save_signature_for_user(user, form.cleaned_data["signature"])
+            if "signature" in form.cleaned_data:
+                save_signature_for_user(user, form.cleaned_data["signature"])
             create_fax_message(message)
