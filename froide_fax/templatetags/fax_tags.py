@@ -1,14 +1,15 @@
 from django import template
 
 from ..forms import SignatureForm
+from ..models import FAX_PERMISSION
 from ..utils import (
+    can_send_fax_on_request,
     get_faxable_messages_from_foirequest,
     get_signature,
     message_can_be_faxed,
     message_can_be_resend,
     message_can_get_fax_report,
 )
-from ..models import FAX_PERMISSION
 
 register = template.Library()
 
@@ -42,6 +43,13 @@ def foirequest_needs_signature(foirequest):
 def can_fax_message(message, request):
     return message_can_be_faxed(
         message, ignore_time=True, ignore_law=request.user.has_perm(FAX_PERMISSION)
+    )
+
+
+@register.filter
+def can_fax_request(foirequest, request):
+    return can_send_fax_on_request(
+        foirequest, always_allow=request.user.has_perm(FAX_PERMISSION)
     )
 
 

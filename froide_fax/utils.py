@@ -4,14 +4,12 @@ from datetime import datetime, timedelta
 from datetime import timezone as tz
 from typing import List
 
+import phonenumbers
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.signing import BadSignature, Signer
 from django.urls import reverse
 from django.utils import timezone
-
-import phonenumbers
-
 from froide.foirequest.models import DeliveryStatus, FoiMessage, FoiRequest
 from froide.foirequest.models.message import MessageKind
 
@@ -102,6 +100,24 @@ def unsign_obj_id(signature, salt=None):
     return int(parts[0])
 
 
+def can_send_fax_on_request(foirequest: FoiRequest, always_allow=False):
+    if not foirequest.public_body:
+        return False
+    fax_number = ensure_fax_number(foirequest.public_body)
+    if fax_number is None:
+        return False
+    if always_allow:
+        return True
+
+    return is_faxing_enabled_on_request(foirequest)
+
+
+def is_faxing_enabled_on_request(foirequest: FoiRequest):
+    return (
+        foirequest.law and foirequest.law.requires_signature
+    ) or foirequest.has_been_refused()
+
+
 def message_can_be_faxed(
     message: FoiMessage,
     ignore_time: bool = False,
@@ -116,7 +132,7 @@ def message_can_be_faxed(
         return False
 
     foirequest = message.request
-    if not foirequest.law or (not ignore_law and not foirequest.law.requires_signature):
+    if not ignore_law and not is_faxing_enabled_on_request(foirequest):
         return False
 
     if not message.recipient_public_body:
