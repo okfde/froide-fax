@@ -3,7 +3,6 @@ from io import BytesIO
 
 from django import forms
 from django.utils import timezone
-
 from froide.foirequest.models import FoiRequest
 
 from .models import DATA_URL_PNG, Signature
@@ -11,8 +10,27 @@ from .utils import get_signature, send_messages_of_request
 from .widgets import SignatureWidget
 
 
+class SignatureField(forms.CharField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", SignatureWidget)
+        super().__init__(*args, **kwargs)
+
+    def clean(self, value):
+        value = super().clean(value)
+        if value == "":
+            return None
+        if not value.startswith(DATA_URL_PNG):
+            raise forms.ValidationError("Bad format")
+        try:
+            image = value.split(",", 1)[1]
+            image = base64.b64decode(image)
+        except ValueError:
+            raise forms.ValidationError("Bad format")
+        return BytesIO(image)
+
+
 class SignatureForm(forms.Form):
-    signature = forms.CharField(required=False, widget=SignatureWidget)
+    signature = SignatureField(required=False)
     foirequest = forms.ModelChoiceField(
         queryset=None, required=False, widget=forms.HiddenInput
     )
@@ -31,38 +49,29 @@ class SignatureForm(forms.Form):
         if signature_required:
             self.fields["signature"].widget.attrs.update({"required": True})
 
-    def clean_signature(self):
-        data_uri = self.cleaned_data["signature"]
-        if data_uri == "":
-            return None
-        if not data_uri.startswith(DATA_URL_PNG):
-            raise forms.ValidationError("Bad format")
-        try:
-            image = data_uri.split(",", 1)[1]
-            image = base64.b64decode(image)
-        except ValueError:
-            raise forms.ValidationError("Bad format")
-        return BytesIO(image)
-
     def save(self):
-        try:
-            sig = Signature.objects.get(user=self.user)
-        except Signature.DoesNotExist:
-            sig = Signature(user=self.user)
-
-        sig.remove_signature_file()
-
-        signature = self.cleaned_data["signature"]
-        if signature is None and sig.pk:
-            sig.delete()
-            sig = None
-        elif signature is not None:
-            sig.signature.save("signature.png", signature)
-            sig.timestamp = timezone.now()
-            sig.save()
-        else:
-            sig = None
+        sig = save_signature_for_user(self.user, self.cleaned_data["signature"])
         if sig is not None and self.cleaned_data["foirequest"]:
             foirequest = self.cleaned_data["foirequest"]
             send_messages_of_request(foirequest)
         return sig
+
+
+def save_signature_for_user(user, signature_bytes):
+    try:
+        sig = Signature.objects.get(user=user)
+    except Signature.DoesNotExist:
+        sig = Signature(user=user)
+
+    sig.remove_signature_file()
+
+    if signature_bytes is None and sig.pk:
+        sig.delete()
+        sig = None
+    elif signature_bytes is not None:
+        sig.signature.save("signature.png", signature_bytes)
+        sig.timestamp = timezone.now()
+        sig.save()
+    else:
+        sig = None
+    return sig
