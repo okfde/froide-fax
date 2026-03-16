@@ -148,6 +148,9 @@ class FaxMessageHandler(MessageHandler):
         form.fields["send_fax"] = forms.BooleanField(
             required=False,
             label=_("Send message as fax"),
+            help_text=_(
+                "In addition to email you can send this message as a fax if the response needs to be signed."
+            ),
             widget=BootstrapCheckboxInput,
         )
         additional_render_fields = [form["send_fax"]]
