@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-16 16:20+0000\n"
-"PO-Revision-Date: 2026-03-16 16:22+0000\n"
+"POT-Creation-Date: 2026-03-16 16:45+0000\n"
+"PO-Revision-Date: 2026-03-16 16:46+0000\n"
 "Last-Translator: Stefan Wehrmeyer <stefan.wehrmeyer@okfn.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.8\n"
+"X-Generator: Poedit 3.9\n"
 
 #: apps.py
 msgid "Froide Fax App"
@@ -25,6 +25,10 @@ msgstr "Froide Fax App"
 #: fax.py
 msgid "Send message as fax"
 msgstr "Nachricht als Fax versenden"
+
+#: fax.py
+msgid "In addition to email you can send this message as a fax if the response needs to be signed."
+msgstr "Zusätzlich zur E-Mail können Sie die Nachricht als Fax versenden, wenn Ihre Antwort schriftlich mit Unterschrift sein muss."
 
 #: fax.py
 msgid "You need to provide a signature to send a fax message."
