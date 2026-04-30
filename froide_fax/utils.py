@@ -2,12 +2,14 @@ import json
 import re
 from datetime import datetime, timedelta
 from datetime import timezone as tz
+from functools import partial
 from typing import List
 
 import phonenumbers
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.signing import BadSignature, Signer
+from django.db import transaction
 from django.urls import reverse
 from django.utils import timezone
 from froide.foirequest.models import DeliveryStatus, FoiMessage, FoiRequest
@@ -204,7 +206,7 @@ def create_fax_message(
         plaintext="",
         original=message,
     )
-    send_fax_message_task.delay(fax_message.pk)
+    transaction.on_commit(partial(send_fax_message_task.delay, fax_message.pk))
     return fax_message
 
 
