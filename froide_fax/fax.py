@@ -142,8 +142,16 @@ class FaxMessageHandler(MessageHandler):
         )
 
     @classmethod
+    def _get_metadata(cls, form):
+        foirequest = getattr(form, "foirequest", None)
+        if foirequest:
+            return foirequest, [foirequest]
+        return form.foiproject, form.foirequests
+
+    @classmethod
     def initialize_send_message_form(cls, form):
-        if not ensure_fax_number(form.foirequest.public_body):
+        meta_obj, foirequests = cls._get_metadata(form)
+        if not any(ensure_fax_number(fr.public_body) for fr in foirequests):
             return
         form.fields["send_fax"] = forms.BooleanField(
             required=False,
@@ -154,7 +162,7 @@ class FaxMessageHandler(MessageHandler):
             widget=BootstrapCheckboxInput,
         )
         additional_render_fields = [form["send_fax"]]
-        signature = get_signature(form.foirequest.user)
+        signature = get_signature(meta_obj.user)
         # Only if no signature is present, we show the field
         if not signature:
             form.fields["signature"] = SignatureField(required=False)
@@ -163,13 +171,14 @@ class FaxMessageHandler(MessageHandler):
 
     @classmethod
     def clean_send_message_form(cls, form, cleaned_data):
-        if not ensure_fax_number(form.foirequest.public_body):
+        meta_obj, foirequests = cls._get_metadata(form)
+        if not any(ensure_fax_number(fr.public_body) for fr in foirequests):
             return
 
         if not cleaned_data["send_fax"]:
             return cleaned_data
 
-        signature = get_signature(form.foirequest.user)
+        signature = get_signature(meta_obj.user)
         if not signature and not cleaned_data["signature"]:
             form.add_error(
                 "signature",
@@ -179,7 +188,7 @@ class FaxMessageHandler(MessageHandler):
 
     @classmethod
     def save_send_message_form(cls, form, message, user):
-        if not ensure_fax_number(form.foirequest.public_body):
+        if not ensure_fax_number(message.request.public_body):
             return
 
         if message.request.user != user:
