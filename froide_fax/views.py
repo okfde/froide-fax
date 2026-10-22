@@ -1,6 +1,7 @@
-import datetime
 import json
+from datetime import datetime
 
+import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -16,17 +17,13 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.generic import FormView
-
-import pytz
-import requests
-from nacl.encoding import Base64Encoder
-from nacl.exceptions import BadSignatureError
-from nacl.signing import VerifyKey
-
 from froide.foirequest.auth import can_write_foirequest
 from froide.foirequest.models import DeliveryStatus, FoiAttachment, FoiMessage
 from froide.helper.utils import get_redirect_url
 from froide.problem.models import ProblemReport
+from nacl.encoding import Base64Encoder
+from nacl.exceptions import BadSignatureError
+from nacl.signing import VerifyKey
 
 from froide_fax.fax import convert_to_fax_bytes
 
@@ -73,7 +70,7 @@ def fax_status_callback(request: HttpRequest):
 
     # prepare signature data for nacl
     verify_key = VerifyKey(public_key, encoder=Base64Encoder)
-    callback_bytes = f"{event_timestamp}|".encode("UTF-8") + request.body
+    callback_bytes = f"{event_timestamp}|".encode() + request.body
     signature = Base64Encoder.decode(event_signature)
 
     # verify signature
@@ -82,13 +79,14 @@ def fax_status_callback(request: HttpRequest):
     except BadSignatureError:
         return HttpResponseForbidden("invalid signature", content_type="text/plain")
 
-    payload_json = json.loads(request.body)
-
     # get message object
-    fax_id = None
     try:
-        fax_id = payload_json.get("data").get("payload").get("fax_id")
-    except AttributeError as e:
+        payload_json = json.loads(request.body)
+        data = payload_json["data"]
+        fax_id = data["payload"]["fax_id"]
+        status = data["payload"]["status"]
+        occured_at = data["occured_at"]
+    except (KeyError, json.JSONDecodeError) as e:
         # this key should always exist. we should never end up here
         raise ValueError(
             f"This is not a valid API response body: {request.body}"
@@ -97,24 +95,14 @@ def fax_status_callback(request: HttpRequest):
     if not fax_id:
         raise ValueError(f"This is not a valid API response body: {request.body}")
 
-    fax_message: FoiMessage = get_object_or_404(FoiMessage, email_message_id=fax_id)
-
-    # find status
     try:
-        status = payload_json.get("data").get("payload").get("status")
-    except AttributeError as e:
-        # we should never end up here either
-        raise ValueError(
-            f"This is not a valid API response body: {request.body}"
-        ) from e
+        fax_message: FoiMessage = FoiMessage.objects.get(email_message_id=fax_id)
+    except FoiMessage.DoesNotExist:
+        raise ValueError(f"Could not find FOI message with id {fax_id}")
 
     if status == "failed":
         status = DeliveryStatus.Delivery.STATUS_FAILED
-    elif status == "queued":
-        status = DeliveryStatus.Delivery.STATUS_SENDING
-    elif status == "media.processed":
-        status = DeliveryStatus.Delivery.STATUS_SENDING
-    elif status.startswith("sending"):
+    elif status in ("queued", "media.processed", "sending"):
         status = DeliveryStatus.Delivery.STATUS_SENDING
     elif status == "delivered":
         status = DeliveryStatus.Delivery.STATUS_SENT
@@ -125,18 +113,21 @@ def fax_status_callback(request: HttpRequest):
 
     # only try and update if the timestamp in request is more recent than
     # the one in the database
-    dt = datetime.datetime.fromtimestamp(int(event_timestamp), pytz.timezone("UTC"))
-    if fax_message.deliverystatus.last_update > dt:
-        return HttpResponse(status=409)
+    try:
+        dt = datetime.fromisoformat(occured_at)
+
+        if fax_message.deliverystatus.last_update > dt:
+            return HttpResponse(status=409)
+    except KeyError:
+        raise ValueError(f"This is not a valid status response: {status}")
 
     ds, _created = DeliveryStatus.objects.update_or_create(
         message=fax_message,
-        defaults=dict(
-            status=status,
-            last_update=timezone.now(),
-        ),
+        defaults={
+            "status": status,
+            "last_update": timezone.now(),
+        },
     )
-    data = payload_json.get("data")
 
     # Create machine-readable log
     fax_log_data = {
@@ -188,7 +179,7 @@ class UpdateSignatureView(LoginRequiredMixin, FormView):
     template_name = "froide_fax/form.html"
 
     def get_form_kwargs(self):
-        kwargs = super(UpdateSignatureView, self).get_form_kwargs()
+        kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user
         return kwargs
 
@@ -203,7 +194,7 @@ class UpdateSignatureView(LoginRequiredMixin, FormView):
             messages.add_message(
                 self.request, messages.SUCCESS, _("Signature has been removed.")
             )
-        return super(UpdateSignatureView, self).form_valid(form)
+        return super().form_valid(form)
 
     def get_success_url(self):
         return get_redirect_url(self.request)
@@ -265,6 +256,6 @@ def pdf_report(request, message_id):
         pdf_generator.get_pdf_bytes(), content_type="application/pdf"
     )
     response["Content-Disposition"] = (
-        "attachment; " 'filename="fax-report-%s.pdf"' % message.pk
+        'attachment; filename="fax-report-%s.pdf"' % message.pk
     )
     return response
