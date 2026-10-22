@@ -85,7 +85,7 @@ def fax_status_callback(request: HttpRequest):
         data = payload_json["data"]
         fax_id = data["payload"]["fax_id"]
         status = data["payload"]["status"]
-        occured_at = data["occured_at"]
+        occurred_at = data["occurred_at"]
     except (KeyError, json.JSONDecodeError) as e:
         # this key should always exist. we should never end up here
         raise ValueError(
@@ -114,7 +114,7 @@ def fax_status_callback(request: HttpRequest):
     # only try and update if the timestamp in request is more recent than
     # the one in the database
     try:
-        dt = datetime.fromisoformat(occured_at)
+        dt = datetime.fromisoformat(occurred_at)
 
         if fax_message.deliverystatus.last_update > dt:
             return HttpResponse(status=409)
