@@ -10,6 +10,7 @@ from froide.foirequest.message_handlers import MessageHandler
 from froide.foirequest.models import DeliveryStatus, FoiAttachment, FoiMessage
 from froide.foirequest.models.message import MessageKind
 from froide.helper.widgets import BootstrapCheckboxInput
+from requests.exceptions import HTTPError, JSONDecodeError
 
 from .forms import SignatureField, save_signature_for_user
 from .pdf_generator import FaxMessagePDFGenerator
@@ -50,7 +51,7 @@ def create_fax_attachment(fax_message):
 
 
 def send_fax_message(fax_message):
-    if not fax_message.kind == MessageKind.FAX:
+    if fax_message.kind != MessageKind.FAX:
         return
 
     create_fax_attachment(fax_message)
@@ -66,8 +67,9 @@ def send_fax_telnyx(
     connection_id,
     authorization="",
     quality="high",
-):
+) -> str:
     """this sends a single message through the telnyx fax gateway
+    returns the remote id by the fax service
     results / error to be handled by calling instance"""
     data = {
         "to": to,
@@ -87,11 +89,11 @@ def send_fax_telnyx(
 
     try:
         response.raise_for_status()
-    except Exception:
-        error_data = response.json()
-        logger.error("Fax sending failed %s", error_data)
-        raise FaxFailedException(response.text)
-    return response
+        data = response.json()
+        return data["data"]["id"]
+    except (JSONDecodeError, HTTPError, KeyError) as e:
+        logger.error("Fax sending failed %s", exc_info=e)
+        raise FaxFailedException(response.text) from e
 
 
 def send_fax(fax_number, media_url):
@@ -110,36 +112,30 @@ class FaxMessageHandler(MessageHandler):
 
         fax_number = ensure_fax_number(fax_message.recipient_public_body)
         if fax_number is None:
-            return None
+            raise ValueError("Public body has no fax number.")
 
         att = fax_message.attachments[0]
 
         media_url = get_media_url(att)
 
-        ds, created = DeliveryStatus.objects.update_or_create(
+        ds, _created = DeliveryStatus.objects.update_or_create(
             message=fax_message,
-            defaults=dict(
-                status=DeliveryStatus.Delivery.STATUS_SENDING,
-                last_update=timezone.now(),
-            ),
+            defaults={
+                "status": DeliveryStatus.Delivery.STATUS_SENDING,
+                "last_update": timezone.now(),
+            },
         )
         try:
-            fax_response = send_fax(fax_number, media_url)
+            fax_id = send_fax(fax_number, media_url)
         except FaxFailedException as e:
             ds.status = DeliveryStatus.Delivery.STATUS_FAILED
             ds.log = e.msg
             ds.save()
             return
 
-        fax_data = fax_response.json().get("data")
-        if fax_data:
-            fax_id = fax_data.get("id", "")
-
-        sent = fax_response.status_code == 202
-        # store fax.sid in message 'email_message_id' (misnomer)
-        FoiMessage.objects.filter(pk=fax_message.pk).update(
-            email_message_id=fax_id, sent=sent
-        )
+        fax_message.email_message_id = fax_id
+        fax_message.sent = True
+        fax_message.save()
 
     @classmethod
     def _get_metadata(cls, form):
